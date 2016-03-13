@@ -78,9 +78,21 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     @Override
     public void initialize() {
         ConnectableDevice d = getDevice();
+        if (d == null) {
+            updateStatus(ThingStatus.UNINITIALIZED, ThingStatusDetail.COMMUNICATION_ERROR, "Device not found.");
+
+            // TODO: if TV is off during init, then getDevice() will return null. Handler then never gets called again.
+            // this problem occurs, when a channel was previously linked to the tv
+
+            return;
+        }
         d.addListener(this);
         if (isAnyChannelLinked()) {
-            d.connect();
+            updateStatus(ThingStatus.OFFLINE);
+            d.connect(); // if successful onDeviceReady will set online state
+        } else {
+            updateStatus(ThingStatus.UNINITIALIZED, ThingStatusDetail.CONFIGURATION_PENDING,
+                    "Link at least one channel of this device to an item in order to connect.");
         }
     }
 
@@ -138,12 +150,15 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void channelLinked(ChannelUID channelUID) {
-        if (!getDevice().isConnected()) {
-            // if not yet connected, we will connect now and then let the normal startup
-            // process handle the subscriptions
-            getDevice().connect();
-        } else {
-            refreshChannelSubscription(channelUID);
+
+        if (getDevice() != null) {
+            if (!getDevice().isConnected()) {
+                // if not yet connected, we will connect now and then let the normal startup
+                // process handle the subscriptions
+                getDevice().connect();
+            } else {
+                refreshChannelSubscription(channelUID);
+            }
         }
     }
 

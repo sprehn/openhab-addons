@@ -1,10 +1,10 @@
 /*
  * SSDPClient
  * Connect SDK
- * 
+ *
  * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 6 Jan 2015
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -43,13 +43,13 @@ public class SSDPClient {
     public static final String OK = "HTTP/1.1 200 OK";
 
     /* Definitions of search targets */
-//    public static final String DEVICE_MEDIA_SERVER_1 = "urn:schemas-upnp-org:device:MediaServer:1"; 
+    // public static final String DEVICE_MEDIA_SERVER_1 = "urn:schemas-upnp-org:device:MediaServer:1";
 
-//    public static final String SERVICE_CONTENT_DIRECTORY_1 = "urn:schemas-upnp-org:service:ContentDirectory:1";
-//    public static final String SERVICE_CONNECTION_MANAGER_1 = "urn:schemas-upnp-org:service:ConnectionManager:1";
-//    public static final String SERVICE_AV_TRANSPORT_1 = "urn:schemas-upnp-org:service:AVTransport:1";
-//    
-//    public static final String ST_ContentDirectory = ST + ":" + UPNP.SERVICE_CONTENT_DIRECTORY_1;
+    // public static final String SERVICE_CONTENT_DIRECTORY_1 = "urn:schemas-upnp-org:service:ContentDirectory:1";
+    // public static final String SERVICE_CONNECTION_MANAGER_1 = "urn:schemas-upnp-org:service:ConnectionManager:1";
+    // public static final String SERVICE_AV_TRANSPORT_1 = "urn:schemas-upnp-org:service:AVTransport:1";
+    //
+    // public static final String ST_ContentDirectory = ST + ":" + UPNP.SERVICE_CONTENT_DIRECTORY_1;
 
     /* Definitions of notification sub type */
     public static final String ALIVE = "ssdp:alive";
@@ -90,7 +90,6 @@ public class SSDPClient {
         datagramSocket.send(dp);
     }
 
-
     /** Used to receive SSDP Response packet */
     public DatagramPacket responseReceive() throws IOException {
         byte[] buf = new byte[1024];
@@ -111,13 +110,14 @@ public class SSDPClient {
         return dp;
     }
 
-//    /** Starts the socket */
-//    public void start() {
-//    
-//    }
+    // /** Starts the socket */
+    // public void start() {
+    //
+    // }
 
     public boolean isConnected() {
-        return datagramSocket != null && multicastSocket != null && datagramSocket.isConnected() && multicastSocket.isConnected();
+        return datagramSocket != null && multicastSocket != null && datagramSocket.isConnected()
+                && multicastSocket.isConnected();
     }
 
     /** Close the socket */
@@ -132,7 +132,7 @@ public class SSDPClient {
         }
 
         if (datagramSocket != null) {
-            datagramSocket.disconnect();
+            // datagramSocket.disconnect(); //SP: results in deadlock with receive and is not necessary
             datagramSocket.close();
         }
     }
