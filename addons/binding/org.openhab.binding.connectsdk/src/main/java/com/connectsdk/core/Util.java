@@ -1,10 +1,10 @@
 /*
  * Util
  * Connect SDK
- * 
+ *
  * Copyright (c) 2014 LG Electronics.
  * Created by Jeffrey Glenn on 27 Feb 2014
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,11 +24,16 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.util.InetAddressUtils;
+
+import com.connectsdk.service.capability.listeners.ErrorListener;
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommandError;
 
 import android.content.Context;
 import android.net.wifi.WifiInfo;
@@ -36,42 +41,40 @@ import android.net.wifi.WifiManager;
 //import android.os.Handler;
 //import android.os.Looper;
 
-import com.connectsdk.service.capability.listeners.ErrorListener;
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
-
 public final class Util {
     static public String T = "Connect SDK";
 
-    //static private Handler handler;
+    // static private Handler handler;
 
-    static private final int NUM_OF_THREADS = 20;
+    static private final int NUM_OF_THREADS = 4;
 
-    static private Executor executor;
+    static private ExecutorService executor;
 
-    static {
-        createExecutor();
-    }
-
-    static void createExecutor() {
-        Util.executor = Executors.newFixedThreadPool(NUM_OF_THREADS, new ThreadFactory() {
+    public static void start() {
+        executor = Executors.newFixedThreadPool(NUM_OF_THREADS, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread th = new Thread(r);
-                th.setName("2nd Screen BG");
+                th.setName("Connect SDK BG");
                 return th;
             }
         });
     }
 
-    public static void runOnUI(Runnable runnable) {
-        /*SP: dont have ui in openhab
-        if (handler == null) {
-            handler = new Handler(Looper.getMainLooper());
-        }
+    public static void stop() {
+        executor.shutdown();
+        executor = null;
+    }
 
-        handler.post(runnable);
-        */
+    public static void runOnUI(Runnable runnable) {
+        /*
+         * SP: dont have ui in openhab
+         * if (handler == null) {
+         * handler = new Handler(Looper.getMainLooper());
+         * }
+         *
+         * handler.post(runnable);
+         */
         runInBackground(runnable, true);
     }
 
@@ -93,13 +96,14 @@ public final class Util {
     }
 
     public static boolean isMain() {
-    	return true;
-//        return Looper.myLooper() == Looper.getMainLooper();
+        return true;
+        // return Looper.myLooper() == Looper.getMainLooper();
     }
 
     public static <T> void postSuccess(final ResponseListener<T> listener, final T object) {
-        if (listener == null)
+        if (listener == null) {
             return;
+        }
 
         Util.runOnUI(new Runnable() {
 
@@ -111,8 +115,9 @@ public final class Util {
     }
 
     public static void postError(final ErrorListener listener, final ServiceCommandError error) {
-        if (listener == null)
+        if (listener == null) {
             return;
+        }
 
         Util.runOnUI(new Runnable() {
 
@@ -124,11 +129,8 @@ public final class Util {
     }
 
     public static byte[] convertIpAddress(int ip) {
-        return new byte[] {
-                (byte) (ip & 0xFF), 
-                (byte) ((ip >> 8) & 0xFF), 
-                (byte) ((ip >> 16) & 0xFF), 
-                (byte) ((ip >> 24) & 0xFF)};
+        return new byte[] { (byte) (ip & 0xFF), (byte) ((ip >> 8) & 0xFF), (byte) ((ip >> 16) & 0xFF),
+                (byte) ((ip >> 24) & 0xFF) };
     }
 
     public static long getTime() {
@@ -150,8 +152,7 @@ public final class Util {
 
         if (ip == 0) {
             return null;
-        }
-        else {
+        } else {
             byte[] ipAddress = convertIpAddress(ip);
             return InetAddress.getByAddress(ipAddress);
         }
