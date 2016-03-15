@@ -14,6 +14,7 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.openhab.binding.connectsdk.handler.ConnectSDKHandler;
+import org.openhab.binding.connectsdk.internal.discovery.ConnectSDKDiscovery;
 
 /**
  * The {@link ConnectSDKHandlerFactory} is responsible for creating things and thing
@@ -22,22 +23,27 @@ import org.openhab.binding.connectsdk.handler.ConnectSDKHandler;
  * @author Sebastian Prehn - Initial contribution
  */
 public class ConnectSDKHandlerFactory extends BaseThingHandlerFactory {
-    // private static final Logger logger = LoggerFactory.getLogger(ConnectSDKHandlerFactory.class);
+    private ConnectSDKDiscovery discovery;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
+    protected void bindDiscovery(ConnectSDKDiscovery discovery) {
+        this.discovery = discovery;
+    }
+
+    protected void unbindDiscovery(ConnectSDKDiscovery discovery) {
+        discovery = null;
+    }
+
     @Override
     protected ThingHandler createHandler(Thing thing) {
-
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
-
         if (thingTypeUID.equals(THING_TYPE_WebOSTV)) {
-            return new ConnectSDKHandler(thing);
+            return new ConnectSDKHandler(thing, discovery.getDiscoveryManager());
         }
-
         return null;
     }
 
