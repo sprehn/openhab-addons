@@ -1,9 +1,6 @@
 package android.net.wifi;
 
-import org.openhab.binding.connectsdk.internal.ConnectSDKHandlerFactory;
-
 public class WifiManager {
-    private final ConnectSDKHandlerFactory binding;
 
     public class WifiLock {
         WifiLock() {
@@ -65,8 +62,7 @@ public class WifiManager {
         }
     }
 
-    public WifiManager(ConnectSDKHandlerFactory binding) {
-        this.binding = binding;
+    public WifiManager() {
     }
 
     // public java.util.List<android.net.wifi.WifiConfiguration> getConfiguredNetworks() { throw new
@@ -105,9 +101,9 @@ public class WifiManager {
         throw new RuntimeException("Stub!");
     }
 
-    public android.net.wifi.WifiInfo getConnectionInfo() {
-        return new WifiInfo(binding);
-        /* throw new RuntimeException("Stub!"); */}
+    // public android.net.wifi.WifiInfo getConnectionInfo() {
+    // throw new RuntimeException("Stub!");
+    // }
 
     // public java.util.List<android.net.wifi.ScanResult> getScanResults() { throw new RuntimeException("Stub!"); }
     public boolean saveConfiguration() {

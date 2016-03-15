@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.discovery.DiscoveryManager;
+import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
@@ -36,9 +37,10 @@ import com.google.common.collect.ImmutableMap;
  *
  * @author Sebastian Prehn - Initial contribution
  */
-public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDeviceListener {
+public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDeviceListener, DiscoveryManagerListener {
 
     private Logger logger = LoggerFactory.getLogger(ConnectSDKHandler.class);
+    private DiscoveryManager discoveryManager;
 
     // ChannelID to CommandHandler Map
     private final Map<String, ChannelHandler> channelHandlers = ImmutableMap.<String, ChannelHandler> builder()
@@ -53,8 +55,9 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
             .put(CHANNEL_MEDIA_STOP, new MediaControlStop()).put(CHANNEL_MEDIA_STATE, new MediaControlPlayState())
             .put(CHANNEL_TOAST, new ToastControlToast()).build();
 
-    public ConnectSDKHandler(Thing thing) {
+    public ConnectSDKHandler(Thing thing, DiscoveryManager discoveryManager) {
         super(thing);
+        this.discoveryManager = discoveryManager;
     }
 
     @Override
@@ -72,37 +75,44 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     private ConnectableDevice getDevice() {
         String ip = this.getThing().getProperties().get(PROPERTY_IP_ADDRESS);
-        return DiscoveryManager.getInstance().getCompatibleDevices().get(ip);
+        return this.discoveryManager.getCompatibleDevices().get(ip);
     }
 
     @Override
     public void initialize() {
+        this.discoveryManager.addListener(this);
+
         ConnectableDevice d = getDevice();
-        if (d == null) {
-            updateStatus(ThingStatus.UNINITIALIZED, ThingStatusDetail.COMMUNICATION_ERROR, "Device not found.");
-
-            // TODO: if TV is off during init, then getDevice() will return null. Handler then never gets called again.
-            // this problem occurs, when a channel was previously linked to the tv
-
-            return;
-        }
-        d.addListener(this);
-        if (isAnyChannelLinked()) {
+        if (d == null) {// If TV is off getDevice() will return null
             updateStatus(ThingStatus.OFFLINE);
-            d.connect(); // if successful onDeviceReady will set online state
+            return;
         } else {
-            updateStatus(ThingStatus.UNINITIALIZED, ThingStatusDetail.CONFIGURATION_PENDING,
-                    "Link at least one channel of this device to an item in order to connect.");
+            d.addListener(this);
+            if (isAnyChannelLinked()) {
+                d.connect(); // if successful onDeviceReady will set online state
+            } else {
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_PENDING,
+                        "Will connect when at least one channel is linked.");
+            }
         }
+
     }
 
+    @Override
+    public void dispose() {
+        super.dispose();
+        ConnectableDevice d = getDevice();
+        if (d != null) {
+            d.removeListener(this);
+        }
+        this.discoveryManager.removeListener(this);
+        this.discoveryManager = null;
+    }
     // Connectable Device Listener
 
     @Override
     public void onDeviceReady(ConnectableDevice device) { // this gets called on connection success
-        logger.info("Device ready: {}", device);
-        updateStatus(ThingStatus.ONLINE);
-
+        updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Device Ready");
         refreshAllChannelSubscriptions(device);
         for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
             e.getValue().onDeviceReady(device, e.getKey(), this);
@@ -112,7 +122,6 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     @Override
     public void onDeviceDisconnected(ConnectableDevice device) {
         logger.debug("Device disconnected: {}", device);
-
         for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
             e.getValue().onDeviceRemoved(device, e.getKey(), this);
             e.getValue().removeAnySubscription(device);
@@ -122,7 +131,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void onPairingRequired(ConnectableDevice device, DeviceService service, PairingType pairingType) {
-        logger.info("Pairing required.");
+        updateStatus(this.thing.getStatus(), ThingStatusDetail.CONFIGURATION_PENDING, "Pairing Required");
     }
 
     @Override
@@ -134,7 +143,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     @Override
     public void onConnectionFailed(ConnectableDevice device, ServiceCommandError error) {
         logger.debug("Connection failed: {} - error: {}", device, error.getMessage());
-        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Failed to connect to device");
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Connection Failed");
     }
 
     // callback methods for commandHandlers
@@ -150,11 +159,8 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void channelLinked(ChannelUID channelUID) {
-
         if (getDevice() != null) {
             if (!getDevice().isConnected()) {
-                // if not yet connected, we will connect now and then let the normal startup
-                // process handle the subscriptions
                 getDevice().connect();
             } else {
                 refreshChannelSubscription(channelUID);
@@ -193,6 +199,38 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
             }
         }
         return false;
+    }
+
+    // just to make sure, this device is registered, if it was powered off during initialization
+    @Override
+    public void onDeviceAdded(DiscoveryManager manager, ConnectableDevice device) {
+        String ip = this.getThing().getProperties().get(PROPERTY_IP_ADDRESS);
+        if (device.getIpAddress().equals(ip)) {
+            device.addListener(this);
+            if (isAnyChannelLinked()) {
+                device.connect(); // if successful onDeviceReady will set online state
+            }
+        }
+    }
+
+    @Override
+    public void onDeviceUpdated(DiscoveryManager manager, ConnectableDevice device) {
+        String ip = this.getThing().getProperties().get(PROPERTY_IP_ADDRESS);
+        if (device.getIpAddress().equals(ip)) {
+            device.addListener(this);
+        }
+    }
+
+    @Override
+    public void onDeviceRemoved(DiscoveryManager manager, ConnectableDevice device) {
+        // Auto-generated method stub
+
+    }
+
+    @Override
+    public void onDiscoveryFailed(DiscoveryManager manager, ServiceCommandError error) {
+        // Auto-generated method stub
+
     }
 
 }

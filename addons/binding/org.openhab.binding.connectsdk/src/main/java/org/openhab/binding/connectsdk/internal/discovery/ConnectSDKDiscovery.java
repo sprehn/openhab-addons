@@ -2,6 +2,14 @@ package org.openhab.binding.connectsdk.internal.discovery;
 
 import static org.openhab.binding.connectsdk.ConnectSDKBindingConstants.*;
 
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
@@ -19,59 +27,41 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.command.ServiceCommandError;
 
-//TODO: openhab> logout or bundle:stop <>
-// causes
-//java.net.SocketException: Socket closed
-//    at java.net.PlainDatagramSocketImpl.receive0(Native Method)
-//    at java.net.AbstractPlainDatagramSocketImpl.receive(AbstractPlainDatagramSocketImpl.java:143)
-//    at java.net.DatagramSocket.receive(DatagramSocket.java:812)
-//    at com.connectsdk.discovery.provider.ssdp.SSDPClient.multicastReceive(SSDPClient.java:109)
-//    at com.connectsdk.discovery.provider.SSDPDiscoveryProvider$2.run(SSDPDiscoveryProvider.java:268)
-//    at java.lang.Thread.run(Thread.java:745)
-
 public class ConnectSDKDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener {
     private static final Logger logger = LoggerFactory.getLogger(ConnectSDKDiscovery.class);
 
     private DiscoveryManager discoveryManager;
 
-    // optional local ip, can be configured through config admin
-    private String localIP;
-
     public ConnectSDKDiscovery() {
         super(ConnectSDKBindingConstants.SUPPORTED_THING_TYPES_UIDS, 60, true);
-        ContextImpl ctx = new ContextImpl(null);// TODO: .. move this to activate method
-        DiscoveryManager.init(ctx); // TODO: .. move this to activate method, give handler reference to this instance,
-                                    // so that they can query discovermanager
+        ContextImpl ctx = new ContextImpl();
+        DiscoveryManager.init(ctx);
     }
 
     @Override
     protected void activate(Map<String, Object> configProperties) {
         logger.info(configProperties.toString());
-        Util.start();
+        InetAddress ip = findLocalInetAddresses((String) configProperties.get("localIP"));
+        Util.start(AbstractDiscoveryService.scheduler, ip);
         discoveryManager = DiscoveryManager.getInstance();
         discoveryManager.setPairingLevel(DiscoveryManager.PairingLevel.ON);
         discoveryManager.addListener(this);
-
         super.activate(configProperties); // starts background discovery
     }
 
     @Override
     protected void deactivate() {
         super.deactivate(); // stops background discovery
-
         discoveryManager.removeListener(this);
         discoveryManager = null;
         DiscoveryManager.destroy();
         Util.stop();
     }
 
-    public DiscoveryManager getDiscoveryManager() {
-        return discoveryManager;
-    }
-
     @Override
     protected void startScan() {
         // no adhoc scanning. Discovery Service runs in background
+        // TODO: find devices in DiscoveryManager connectable devices that are not connected to a thing handler
     }
 
     @Override
@@ -120,6 +110,69 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
 
     private ThingUID createThingUID(ConnectableDevice device) {
         return new ThingUID(THING_TYPE_WebOSTV, device.getIpAddress().replace('.', '_'));
+    }
+
+    public DiscoveryManager getDiscoveryManager() {
+        return this.discoveryManager;
+    }
+
+    /**
+     * Get local IP either through configuration or auto detection.
+     * Method will ignore loopback addresses.
+     *
+     * @param localIP optional configuration string
+     * @return local ip or <code>null</code> if detection was not possible.
+     */
+    private InetAddress findLocalInetAddresses(String localIP) {
+
+        // evaluate optional localIP parameter, can be configured through config admin (connectsdk.cfg)
+        if (localIP != null && !localIP.trim().isEmpty()) {
+            try {
+                logger.debug("localIP parameter explicitly set to: {}", localIP);
+                return InetAddress.getByName(localIP.trim());
+            } catch (UnknownHostException e) {
+                logger.error("localIP config parameter could not be parsed: {}", localIP);
+            }
+        }
+
+        // try to find IP via Java method (one some systems this returns the loopback interface though)
+        try {
+            final InetAddress inetAddress = InetAddress.getLocalHost();
+            if (!inetAddress.isLoopbackAddress()) {
+                logger.debug("Autodetected (via getLocalHost) local IP: {}", inetAddress);
+                return inetAddress;
+            }
+        } catch (UnknownHostException ex) {
+            logger.error("Unable to resolve your hostname", ex);
+        }
+
+        // try to find the single non-loop back interface available
+        final List<InetAddress> interfaces = new ArrayList<InetAddress>();
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = networkInterfaces.nextElement();
+                if (networkInterface.isUp() && !networkInterface.isLoopback()) {
+                    for (InterfaceAddress adr : networkInterface.getInterfaceAddresses()) {
+                        InetAddress inadr = adr.getAddress();
+                        interfaces.add(inadr);
+                    }
+                }
+            }
+
+            if (interfaces.size() == 1) { // found exactly one interface, good
+                logger.debug("Autodetected (via getNetworkInterfaces) local IP: {}", interfaces.get(0));
+                return interfaces.get(0);
+            } else {
+                logger.error(
+                        "Autodetection of local IP (via getNetworkInterfaces) failed, as multiple interfaces where detected: {}",
+                        interfaces);
+            }
+        } catch (SocketException e) {
+            logger.error("Failed to detect network interfaces and addresses", e);
+        }
+
+        return null;
     }
 
 }
