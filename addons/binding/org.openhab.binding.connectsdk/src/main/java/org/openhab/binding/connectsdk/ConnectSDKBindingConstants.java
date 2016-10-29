@@ -47,6 +47,7 @@ public class ConnectSDKBindingConstants {
     public final static String CHANNEL_MEDIA_REWIND = "mediaRewind";
     public final static String CHANNEL_MEDIA_STOP = "mediaStop";
     public final static String CHANNEL_MEDIA_STATE = "mediaState";
+    public final static String CHANNEL_APP_LAUCHER = "appLauncher";
 
     public final static String PROPERTY_IP_ADDRESS = "IP";
 }
