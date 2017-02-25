@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -74,9 +75,9 @@ public class BlockingAsyncContextDelegateProvider implements AsyncContextDelegat
                             response.flushBuffer();
                         } catch (Exception exception) {
 
-                            // If an exception has occured during write and
+                            // If an exception has occurred during write and
                             // flush we consider the connection closed, attempt
-                            // to close the outputstream and stop blocking.
+                            // to close the output stream and stop blocking.
                             try {
                                 response.getOutputStream().close();
                             } catch (IOException e) {

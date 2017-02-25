@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -9,6 +9,8 @@
 package org.openhab.io.homekit.internal.accessories;
 
 import org.eclipse.smarthome.core.items.GenericItem;
+import org.eclipse.smarthome.core.items.GroupItem;
+import org.eclipse.smarthome.core.items.Item;
 import org.eclipse.smarthome.core.items.ItemRegistry;
 import org.openhab.io.homekit.internal.HomekitAccessoryUpdater;
 import org.openhab.io.homekit.internal.HomekitTaggedItem;
@@ -40,9 +42,13 @@ abstract class AbstractHomekitAccessoryImpl<T extends GenericItem> implements Ho
         this.itemLabel = taggedItem.getItem().getLabel();
         this.itemRegistry = itemRegistry;
         this.updater = updater;
+        Item baseItem = taggedItem.getItem();
+        if (baseItem instanceof GroupItem && ((GroupItem) baseItem).getBaseItem() != null) {
+            baseItem = ((GroupItem) baseItem).getBaseItem();
+        }
         if (expectedItemClass != taggedItem.getItem().getClass()
-                && expectedItemClass.isAssignableFrom(taggedItem.getItem().getClass())) {
-            logger.error("Type " + taggedItem.getItem().getName() + " is a " + taggedItem.getItem().getClass().getName()
+                && !expectedItemClass.isAssignableFrom(baseItem.getClass())) {
+            logger.error("Type " + taggedItem.getItem().getName() + " is a " + baseItem.getClass().getName()
                     + " instead of the expected " + expectedItemClass.getName());
         }
     }
@@ -89,8 +95,7 @@ abstract class AbstractHomekitAccessoryImpl<T extends GenericItem> implements Ho
         return updater;
     }
 
-    @SuppressWarnings("unchecked")
-    protected T getItem() {
-        return (T) getItemRegistry().get(getItemName());
+    protected GenericItem getItem() {
+        return (GenericItem) getItemRegistry().get(getItemName());
     }
 }

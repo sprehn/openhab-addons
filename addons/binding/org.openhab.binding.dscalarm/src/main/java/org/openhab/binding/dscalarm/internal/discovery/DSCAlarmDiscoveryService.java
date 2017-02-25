@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -81,7 +81,8 @@ public class DSCAlarmDiscoveryService extends AbstractDiscoveryService {
         String thingLabel = "";
         Map<String, Object> properties = null;
 
-        int partitionNumber = Integer.parseInt(event.getDSCAlarmMessage().getMessageInfo(DSCAlarmMessageInfoType.PARTITION));
+        int partitionNumber = Integer
+                .parseInt(event.getDSCAlarmMessage().getMessageInfo(DSCAlarmMessageInfoType.PARTITION));
         int zoneNumber = Integer.parseInt(event.getDSCAlarmMessage().getMessageInfo(DSCAlarmMessageInfoType.ZONE));
 
         switch (dscAlarmThingType) {
@@ -122,9 +123,11 @@ public class DSCAlarmDiscoveryService extends AbstractDiscoveryService {
             DiscoveryResult discoveryResult;
 
             if (properties != null) {
-                discoveryResult = DiscoveryResultBuilder.create(thingUID).withProperties(properties).withBridge(bridge.getUID()).withLabel(thingLabel).build();
+                discoveryResult = DiscoveryResultBuilder.create(thingUID).withProperties(properties)
+                        .withBridge(bridge.getUID()).withLabel(thingLabel).build();
             } else {
-                discoveryResult = DiscoveryResultBuilder.create(thingUID).withBridge(bridge.getUID()).withLabel(thingLabel).build();
+                discoveryResult = DiscoveryResultBuilder.create(thingUID).withBridge(bridge.getUID())
+                        .withLabel(thingLabel).build();
             }
 
             thingDiscovered(discoveryResult);

@@ -6,6 +6,7 @@
 	<thing-type id="lighting1">
 		<supported-bridge-type-refs>
 			<bridge-type-ref id="bridge" />
+			<bridge-type-ref id="tcpbridge" />
 			<bridge-type-ref id="RFXtrx315" />
 			<bridge-type-ref id="RFXtrx433" />
 			<bridge-type-ref id="RFXrec433" />
@@ -40,6 +41,7 @@
 					<option value="ENERGENIE">Energenie ENER010</option>
 					<option value="ENERGENIE_5">Energenie 5-gang</option>
 					<option value="COCO">COCO GDR2-2000R</option>
+					<option value="HQ_COCO20">HQ COCO-20</option>
 				</options>
 			</parameter>
 		</config-description>

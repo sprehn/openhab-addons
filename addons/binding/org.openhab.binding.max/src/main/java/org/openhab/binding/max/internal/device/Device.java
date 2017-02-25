@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -9,6 +9,7 @@
 package org.openhab.binding.max.internal.device;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.smarthome.core.library.types.OnOffType;
@@ -21,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * Base class for devices provided by the MAX! protocol.
  *
  * @author Andreas Heil (info@aheil.de)
- * @author Marcel Verpaalen - OH2 update
+ * @author Marcel Verpaalen - OH2 update + enhancements
  * @since 1.4.0
  */
 public abstract class Device {
@@ -31,7 +32,8 @@ public abstract class Device {
     private String serialNumber = "";
     private String rfAddress = "";
     private int roomId = -1;
-    private DeviceConfiguration config;
+    private String roomName = "";
+    private String name = "";
 
     private boolean updated;
     private boolean batteryLow;
@@ -44,46 +46,63 @@ public abstract class Device {
     private boolean gatewayKnown;
     private boolean panelLocked;
     private boolean linkStatusError;
+    private HashMap<String, Object> properties = new HashMap<>();
 
     public Device(DeviceConfiguration c) {
         this.serialNumber = c.getSerialNumber();
         this.rfAddress = c.getRFAddress();
         this.roomId = c.getRoomId();
-        this.config = c;
+        this.roomName = c.getRoomName();
+        this.name = c.getName();
+        this.setProperties(new HashMap<>(c.getProperties()));
     }
 
     public abstract DeviceType getType();
 
     public String getName() {
-        String deviceName = "";
-        if (config.getName() != null) {
-            deviceName = config.getName();
-        }
-        return deviceName;
+        return name;
     }
 
-    private static Device create(String rfAddress, List<DeviceConfiguration> configurations) {
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public static Device create(String rfAddress, List<DeviceConfiguration> configurations) {
         Device returnValue = null;
         for (DeviceConfiguration c : configurations) {
             if (c.getRFAddress().toUpperCase().equals(rfAddress.toUpperCase())) {
-                switch (c.getDeviceType()) {
-                    case HeatingThermostatPlus:
-                    case HeatingThermostat:
-                        HeatingThermostat thermostat = new HeatingThermostat(c);
-                        thermostat.setType(c.getDeviceType());
-                        return thermostat;
-                    case EcoSwitch:
-                        return new EcoSwitch(c);
-                    case ShutterContact:
-                        return new ShutterContact(c);
-                    case WallMountedThermostat:
-                        return new WallMountedThermostat(c);
-                    default:
-                        return new UnsupportedDevice(c);
-                }
+                return create(c);
             }
         }
         return returnValue;
+    }
+
+    /**
+     * Creates a new device
+     *
+     * @param DeviceConfiguration
+     * @return Device
+     */
+    public static Device create(DeviceConfiguration c) {
+        {
+            switch (c.getDeviceType()) {
+                case HeatingThermostatPlus:
+                case HeatingThermostat:
+                    HeatingThermostat thermostat = new HeatingThermostat(c);
+                    thermostat.setType(c.getDeviceType());
+                    return thermostat;
+                case EcoSwitch:
+                    return new EcoSwitch(c);
+                case ShutterContact:
+                    return new ShutterContact(c);
+                case WallMountedThermostat:
+                    return new WallMountedThermostat(c);
+                case Cube:
+                    return new Cube(c);
+                default:
+                    return new UnsupportedDevice(c);
+            }
+        }
     }
 
     public static Device create(byte[] raw, List<DeviceConfiguration> configurations) {
@@ -126,7 +145,7 @@ public abstract class Device {
         device.setLinkStatusError(bits2[6]);
         device.setBatteryLow(bits2[7]);
 
-        logger.trace("Device {} type {} L Message length: {} content: {}", rfAddress, device.getType().toString(),
+        logger.trace("Device {} ({}): L Message length: {} content: {}", rfAddress, device.getType().toString(),
                 raw.length, Utils.getHex(raw));
 
         // TODO move the device specific readings into the sub classes
@@ -145,7 +164,7 @@ public abstract class Device {
                 } else if (bits2[1] == true && bits2[0] == true) {
                     heatingThermostat.setMode(ThermostatModeType.BOOST);
                 } else {
-                    logger.debug("Device {}: Unknown mode", rfAddress);
+                    logger.debug("Device {} ({}): Unknown mode", rfAddress, device.getType().toString());
                 }
 
                 heatingThermostat.setValvePosition(raw[6] & 0xFF);
@@ -169,26 +188,29 @@ public abstract class Device {
                             && heatingThermostat.getMode() != ThermostatModeType.BOOST) {
                         actualTemp = (raw[8] & 0xFF) * 256 + (raw[9] & 0xFF);
                     } else {
-                        logger.debug("Device {}: No temperature reading in {} mode", rfAddress,
-                                heatingThermostat.getMode());
+                        logger.debug("Device {} ({}): No temperature reading in {} mode", rfAddress,
+                                device.getType().toString(), heatingThermostat.getMode());
                     }
                 }
-                logger.trace("Device {}: Actual Temperature : {}", rfAddress, (double) actualTemp / 10);
+                logger.debug("Device {} ({}): Actual Temperature : {}", rfAddress, device.getType().toString(),
+                        (double) actualTemp / 10);
                 heatingThermostat.setTemperatureActual((double) actualTemp / 10);
                 break;
             case EcoSwitch:
                 String eCoSwitchData = Utils.toHex(raw[3] & 0xFF, raw[4] & 0xFF, raw[5] & 0xFF);
-                logger.trace("EcoSwitch Device {} status bytes : {}", rfAddress, eCoSwitchData);
+                logger.trace("Device {} ({}): Status bytes : {}", rfAddress, device.getType().toString(),
+                        eCoSwitchData);
                 EcoSwitch ecoswitch = (EcoSwitch) device;
                 // xxxx xx10 = shutter open, xxxx xx00 = shutter closed
                 if (bits2[1] == true && bits2[0] == false) {
                     ecoswitch.setEcoMode(OnOffType.ON);
-                    logger.trace("Device {} status: ON", rfAddress);
+                    logger.trace("Device {} ({}): status: ON", rfAddress, device.getType().toString());
                 } else if (bits2[1] == false && bits2[0] == false) {
                     ecoswitch.setEcoMode(OnOffType.OFF);
-                    logger.trace("Device {} status: OFF", rfAddress);
+                    logger.trace("Device {} ({}): Status: OFF", rfAddress, device.getType().toString());
                 } else {
-                    logger.trace("Device {} status switch status Unknown (true-true)", rfAddress);
+                    logger.trace("Device {} ({}): Status switch status Unknown (true-true)", rfAddress,
+                            device.getType().toString());
                 }
                 break;
             case ShutterContact:
@@ -196,12 +218,13 @@ public abstract class Device {
                 // xxxx xx10 = shutter open, xxxx xx00 = shutter closed
                 if (bits2[1] == true && bits2[0] == false) {
                     shutterContact.setShutterState(OpenClosedType.OPEN);
-                    logger.trace("Device {} status: Open", rfAddress);
+                    logger.debug("Device {} ({}): Status: Open", rfAddress, device.getType().toString());
                 } else if (bits2[1] == false && bits2[0] == false) {
                     shutterContact.setShutterState(OpenClosedType.CLOSED);
-                    logger.trace("Device {} status: Closed", rfAddress);
+                    logger.debug("Device {} ({}): Status: Closed", rfAddress, device.getType().toString());
                 } else {
-                    logger.trace("Device {} status switch status Unknown (true-true)", rfAddress);
+                    logger.trace("Device {} ({}): Status switch status Unknown (true-true)", rfAddress,
+                            device.getType().toString());
                 }
 
                 break;
@@ -241,11 +264,11 @@ public abstract class Device {
     }
 
     public final String getRoomName() {
-        String roomName = "";
-        if (config.getRoomName() != null) {
-            roomName = config.getRoomName();
-        }
         return roomName;
+    }
+
+    public final void setRoomName(String roomName) {
+        this.roomName = roomName;
     }
 
     private void setLinkStatusError(boolean linkStatusError) {
@@ -347,6 +370,25 @@ public abstract class Device {
 
     public boolean isLinkStatusError() {
         return linkStatusError;
+    }
+
+    /**
+     * @return the properties
+     */
+    public HashMap<String, Object> getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param properties the properties to set
+     */
+    public void setProperties(HashMap<String, Object> properties) {
+        this.properties = new HashMap<>(properties);
+    }
+
+    @Override
+    public String toString() {
+        return this.getType().toString() + " (" + rfAddress + ") '" + this.getName() + "'";
     }
 
 }

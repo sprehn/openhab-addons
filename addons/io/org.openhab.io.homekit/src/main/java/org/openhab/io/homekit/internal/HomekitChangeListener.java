@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -35,11 +35,12 @@ public class HomekitChangeListener implements ItemRegistryChangeListener {
 
     @Override
     public synchronized void added(Item item) {
-        HomekitTaggedItem taggedItem = new HomekitTaggedItem(item);
+        HomekitTaggedItem taggedItem = new HomekitTaggedItem(item, itemRegistry);
         if (taggedItem.isTagged()) {
             if (taggedItem.isRootDevice()) {
                 createRootDevice(taggedItem);
-            } else {
+            }
+            if (taggedItem.isCharacteristic()) {
                 createCharacteristic(taggedItem);
             }
         }
@@ -52,7 +53,7 @@ public class HomekitChangeListener implements ItemRegistryChangeListener {
 
     @Override
     public synchronized void removed(Item item) {
-        HomekitTaggedItem taggedItem = new HomekitTaggedItem(item);
+        HomekitTaggedItem taggedItem = new HomekitTaggedItem(item, itemRegistry);
         if (taggedItem.isTagged()) {
             accessoryRegistry.remove(taggedItem);
         }

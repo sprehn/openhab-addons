@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -48,6 +48,9 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
     /** The DSC Alarm bridge type. */
     private DSCAlarmBridgeType dscAlarmBridgeType = null;
 
+    /** The DSC Alarm bridge type. */
+    private DSCAlarmProtocol dscAlarmProtocol = null;
+
     /** The DSC Alarm Discovery Service. */
     private DSCAlarmDiscoveryService dscAlarmDiscoveryService = null;
 
@@ -57,11 +60,14 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
     /** Connection status for the bridge. */
     private boolean connected = false;
 
-    /** Determines if a thing has changed. */
+    /** Determines if things have changed. */
     private boolean thingsHaveChanged = false;
 
-    /** Determines if all things have been refreshed. */
-    private boolean allThingsRefreshed = false;
+    /** Determines if all things have been initialized. */
+    private boolean allThingsInitialized = false;
+
+    /** Thing count. */
+    private int thingCount = 0;
 
     /** Password for bridge connection authentication. */
     private String password = null;
@@ -90,9 +96,10 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * @param bridge
      * @param dscAlarmBridgeType
      */
-    DSCAlarmBaseBridgeHandler(Bridge bridge, DSCAlarmBridgeType dscAlarmBridgeType) {
+    DSCAlarmBaseBridgeHandler(Bridge bridge, DSCAlarmBridgeType dscAlarmBridgeType, DSCAlarmProtocol dscAlarmProtocol) {
         super(bridge);
         this.dscAlarmBridgeType = dscAlarmBridgeType;
+        this.dscAlarmProtocol = dscAlarmProtocol;
     }
 
     /**
@@ -100,6 +107,22 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      */
     public DSCAlarmBridgeType getBridgeType() {
         return dscAlarmBridgeType;
+    }
+
+    /**
+     * Sets the protocol.
+     *
+     * @param dscAlarmProtocol
+     */
+    public void setProtocol(DSCAlarmProtocol dscAlarmProtocol) {
+        this.dscAlarmProtocol = dscAlarmProtocol;
+    }
+
+    /**
+     * Returns the protocol.
+     */
+    public DSCAlarmProtocol getProtocol() {
+        return dscAlarmProtocol;
     }
 
     /**
@@ -137,17 +160,25 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * Connect The Bridge.
      */
     private void connect() {
-        onDisconnected();
 
         openConnection();
 
         if (isConnected()) {
-            if (sendCommand(DSCAlarmCode.NetworkLogin)) {
+            if (dscAlarmBridgeType != DSCAlarmBridgeType.Envisalink) {
                 onConnected();
-            } else {
-                closeConnection();
             }
         }
+    }
+
+    /**
+     * Runs when connected.
+     */
+    public void onConnected() {
+        logger.debug("onConnected(): Bridge Connected!");
+
+        setBridgeStatus(true);
+
+        thingsHaveChanged = true;
     }
 
     /**
@@ -158,82 +189,37 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
         closeConnection();
 
         if (!isConnected()) {
-            onDisconnected();
+            setBridgeStatus(false);
         }
     }
 
     /**
-     * Returns connection status.
+     * Returns Connected.
      */
     public boolean isConnected() {
-        return connected;
+        return this.connected;
     }
 
     /**
-     * Set connection status.
-     *
-     * @param connected
+     * Sets Connected.
      */
     public void setConnected(boolean connected) {
         this.connected = connected;
     }
 
     /**
-     * Set channel 'bridge_connection'.
+     * Set Bridge Status.
      *
-     * @param connected
+     * @param isOnline
      */
-    public void setBridgeConnection(boolean connected) {
-        logger.debug("setBridgeConnection(): Set Bridge to {}", connected ? ThingStatus.ONLINE : ThingStatus.OFFLINE);
+    public void setBridgeStatus(boolean isOnline) {
+        logger.debug("setBridgeConnection(): Setting Bridge to {}",
+                isOnline ? ThingStatus.ONLINE : ThingStatus.OFFLINE);
+
+        updateStatus(isOnline ? ThingStatus.ONLINE : ThingStatus.OFFLINE);
 
         ChannelUID channelUID = new ChannelUID(getThing().getUID(), BRIDGE_RESET);
-
-        setConnected(connected);
-
-        updateState(channelUID, connected ? OnOffType.ON : OnOffType.OFF);
-        updateStatus(connected ? ThingStatus.ONLINE : ThingStatus.OFFLINE);
-    }
-
-    /**
-     * Runs when connected.
-     */
-    public void onConnected() {
-        logger.debug("onConnected(): Bridge Connected!");
-
-        setBridgeConnection(true);
-
-        // Inform thing handlers of connection
-        List<Thing> things = getThing().getThings();
-
-        for (Thing thing : things) {
-            DSCAlarmBaseThingHandler thingHandler = (DSCAlarmBaseThingHandler) thing.getHandler();
-
-            if (thingHandler != null) {
-                thingHandler.onBridgeConnected(this);
-                logger.trace("onConnected(): Bridge - {}, Thing - {}, Thing Handler - {}", thing.getBridgeUID(), thing.getUID(), thingHandler);
-            }
-        }
-    }
-
-    /**
-     * Runs when disconnected.
-     */
-    public void onDisconnected() {
-        logger.debug("onDisconnected(): Bridge Disconnected!");
-
-        setBridgeConnection(false);
-
-        // Inform thing handlers of disconnection
-        List<Thing> things = getThing().getThings();
-
-        for (Thing thing : things) {
-            DSCAlarmBaseThingHandler thingHandler = (DSCAlarmBaseThingHandler) thing.getHandler();
-
-            if (thingHandler != null) {
-                thingHandler.onBridgeDisconnected(this);
-                logger.trace("onDisconnected(): Bridge - {}, Thing - {}, Thing Handler - {}", thing.getBridgeUID(), thing.getUID(), thingHandler);
-            }
-        }
+        updateState(channelUID, isOnline ? OnOffType.ON : OnOffType.OFF);
     }
 
     /**
@@ -315,7 +301,7 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * Method for polling the DSC Alarm System.
      */
     public synchronized void polling() {
-        logger.debug("DSC Alarm Polling Task - '{}'", getThing().getUID());
+        logger.debug("DSC Alarm Polling Task - '{}' is {}", getThing().getUID(), getThing().getStatus());
 
         if (isConnected()) {
 
@@ -325,7 +311,8 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
 
             pollElapsedTime = ((System.currentTimeMillis() - pollStartTime) / 1000) / 60;
 
-            // Send Poll command to the DSC Alarm if idle for 'pollPeriod' minutes
+            // Send Poll command to the DSC Alarm if idle for 'pollPeriod'
+            // minutes
             if (pollElapsedTime >= pollPeriod) {
                 sendCommand(DSCAlarmCode.Poll);
                 pollStartTime = 0;
@@ -334,10 +321,10 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
             checkThings();
 
             if (thingsHaveChanged) {
-                if (allThingsRefreshed) {
-                    this.setBridgeConnection(isConnected());
+                if (allThingsInitialized) {
+                    this.setBridgeStatus(isConnected());
                     thingsHaveChanged = false;
-                    // Get a status report from API.
+                    // Get a status report from DSC Alarm.
                     sendCommand(DSCAlarmCode.StatusReport);
                 }
             }
@@ -351,39 +338,45 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * Check if things have changed.
      */
     public void checkThings() {
-        logger.trace("Checking Things!");
+        logger.debug("Checking Things!");
 
-        allThingsRefreshed = true;
+        allThingsInitialized = true;
 
         List<Thing> things = getThing().getThings();
+
+        if (things.size() != thingCount) {
+            thingsHaveChanged = true;
+            thingCount = things.size();
+        }
 
         for (Thing thing : things) {
 
             DSCAlarmBaseThingHandler handler = (DSCAlarmBaseThingHandler) thing.getHandler();
 
             if (handler != null) {
-                logger.debug("***Checking '{}' - Status: {}, Refreshed: {}", thing.getUID(), thing.getStatus(), handler.isThingRefreshed());
+                logger.debug("***Checking '{}' - Status: {}, Initialized: {}", thing.getUID(), thing.getStatus(),
+                        handler.isThingHandlerInitialized());
 
-                if (!handler.isThingRefreshed()) {
+                if (!handler.isThingHandlerInitialized() || !thing.getStatus().equals(ThingStatus.ONLINE)) {
 
-                    handler.onBridgeConnected(this);
-
-                    if (handler.isThingRefreshed()) {
-                        thingsHaveChanged = true;
+                    if (getThing().getStatus().equals(ThingStatus.ONLINE)) {
+                        handler.bridgeStatusChanged(getThing().getStatusInfo());
                     }
 
                     if (handler.getDSCAlarmThingType().equals(DSCAlarmThingType.PANEL)) {
-                        if (panelThingHandler == null)
+                        if (panelThingHandler == null) {
                             panelThingHandler = handler;
+                        }
                     }
 
-                    allThingsRefreshed = false;
+                    allThingsInitialized = false;
                 }
 
             } else {
                 logger.error("checkThings(): Thing handler not found!");
             }
         }
+
     }
 
     /**
@@ -395,6 +388,7 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * @return thing
      */
     public Thing findThing(DSCAlarmThingType dscAlarmThingType, int partitionId, int zoneId) {
+
         List<Thing> things = getThing().getThings();
 
         Thing thing = null;
@@ -414,21 +408,26 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                                 case PANEL:
                                 case KEYPAD:
                                     thing = t;
-                                    logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler, handlerDSCAlarmThingType);
+                                    logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler,
+                                            handlerDSCAlarmThingType);
                                     return thing;
                                 case PARTITION:
-                                    BigDecimal partitionNumber = (BigDecimal) config.get(DSCAlarmPartitionConfiguration.PARTITION_NUMBER);
+                                    BigDecimal partitionNumber = (BigDecimal) config
+                                            .get(DSCAlarmPartitionConfiguration.PARTITION_NUMBER);
                                     if (partitionId == partitionNumber.intValue()) {
                                         thing = t;
-                                        logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler, handlerDSCAlarmThingType);
+                                        logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler,
+                                                handlerDSCAlarmThingType);
                                         return thing;
                                     }
                                     break;
                                 case ZONE:
-                                    BigDecimal zoneNumber = (BigDecimal) config.get(DSCAlarmZoneConfiguration.ZONE_NUMBER);
+                                    BigDecimal zoneNumber = (BigDecimal) config
+                                            .get(DSCAlarmZoneConfiguration.ZONE_NUMBER);
                                     if (zoneId == zoneNumber.intValue()) {
                                         thing = t;
-                                        logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler, handlerDSCAlarmThingType);
+                                        logger.debug("findThing(): Thing Found - {}, {}, {}", t, handler,
+                                                handlerDSCAlarmThingType);
                                         return thing;
                                     }
                                     break;
@@ -439,7 +438,7 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                     }
                 }
             } catch (Exception e) {
-                logger.debug("findThing(): Error Seaching Thing - {}", e);
+                logger.debug("findThing(): Error Seaching Thing - {} ", e.getMessage(), e);
             }
         }
 
@@ -452,33 +451,46 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
      * @param incomingMessage
      */
     public synchronized void handleIncomingMessage(String incomingMessage) {
-        if (incomingMessage != null && incomingMessage != "") {
-            DSCAlarmMessage apiMessage = new DSCAlarmMessage(incomingMessage);
-            DSCAlarmMessageType apiMessageType = apiMessage.getDSCAlarmMessageType();
+        if (incomingMessage != null && !incomingMessage.isEmpty()) {
+            DSCAlarmMessage dscAlarmMessage = new DSCAlarmMessage(incomingMessage);
+            DSCAlarmMessageType dscAlarmMessageType = dscAlarmMessage.getDSCAlarmMessageType();
 
-            logger.debug("handleIncomingMessage(): Message received: {} - {}", incomingMessage, apiMessage.toString());
+            logger.debug("handleIncomingMessage(): Message received: {} - {}", incomingMessage,
+                    dscAlarmMessage.toString());
 
             DSCAlarmEvent event = new DSCAlarmEvent(this);
-            event.dscAlarmEventMessage(apiMessage);
+            event.dscAlarmEventMessage(dscAlarmMessage);
             DSCAlarmThingType dscAlarmThingType = null;
             int partitionId = 0;
             int zoneId = 0;
 
-            DSCAlarmCode apiCode = DSCAlarmCode.getDSCAlarmCodeValue(apiMessage.getMessageInfo(DSCAlarmMessageInfoType.CODE));
-            if (apiCode == DSCAlarmCode.CommandAcknowledge) {
-                String apiData = apiMessage.getMessageInfo(DSCAlarmMessageInfoType.DATA);
-                if (apiData.equals("000")) {
-                    setBridgeConnection(true);
+            DSCAlarmCode dscAlarmCode = DSCAlarmCode
+                    .getDSCAlarmCodeValue(dscAlarmMessage.getMessageInfo(DSCAlarmMessageInfoType.CODE));
+
+            if (dscAlarmCode == DSCAlarmCode.LoginResponse) {
+                String dscAlarmMessageData = dscAlarmMessage.getMessageInfo(DSCAlarmMessageInfoType.DATA);
+                if (dscAlarmMessageData.equals("3")) {
+                    sendCommand(DSCAlarmCode.NetworkLogin);
+                    // onConnected();
+                } else if (dscAlarmMessageData.equals("1")) {
+                    onConnected();
+                }
+                return;
+            } else if (dscAlarmCode == DSCAlarmCode.CommandAcknowledge) {
+                String dscAlarmMessageData = dscAlarmMessage.getMessageInfo(DSCAlarmMessageInfoType.DATA);
+                if (dscAlarmMessageData.equals("000")) {
+                    setBridgeStatus(true);
                 }
             }
 
-            switch (apiMessageType) {
+            switch (dscAlarmMessageType) {
                 case PANEL_EVENT:
                     dscAlarmThingType = DSCAlarmThingType.PANEL;
                     break;
                 case PARTITION_EVENT:
                     dscAlarmThingType = DSCAlarmThingType.PARTITION;
-                    partitionId = Integer.parseInt(event.getDSCAlarmMessage().getMessageInfo(DSCAlarmMessageInfoType.PARTITION));
+                    partitionId = Integer
+                            .parseInt(event.getDSCAlarmMessage().getMessageInfo(DSCAlarmMessageInfoType.PARTITION));
                     break;
                 case ZONE_EVENT:
                     dscAlarmThingType = DSCAlarmThingType.ZONE;
@@ -501,12 +513,16 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                     DSCAlarmBaseThingHandler thingHandler = (DSCAlarmBaseThingHandler) thing.getHandler();
 
                     if (thingHandler != null) {
-                        thingHandler.dscAlarmEventReceived(event, thing);
+                        if (thingHandler.isThingHandlerInitialized()) {
+                            thingHandler.dscAlarmEventReceived(event, thing);
 
-                        if (panelThingHandler != null) {
-                            if (!thingHandler.equals(panelThingHandler)) {
-                                panelThingHandler.dscAlarmEventReceived(event, thing);
+                            if (panelThingHandler != null) {
+                                if (!thingHandler.equals(panelThingHandler)) {
+                                    panelThingHandler.dscAlarmEventReceived(event, thing);
+                                }
                             }
+                        } else {
+                            logger.debug("handleIncomingMessage(): Thing '{}' Not Refreshed!", thing.getUID());
                         }
                     }
                 } else {
@@ -517,6 +533,8 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                     }
                 }
             }
+        } else {
+            logger.debug("handleIncomingMessage(): No Message Received!");
         }
     }
 
@@ -556,13 +574,13 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                 validCommand = true;
                 break;
             case LabelsRequest: /* 002 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.IT100)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.IT100_API)) {
                     break;
                 }
                 validCommand = true;
                 break;
             case NetworkLogin: /* 005 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.Envisalink)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.ENVISALINK_TPI)) {
                     break;
                 }
 
@@ -574,7 +592,7 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                 validCommand = true;
                 break;
             case DumpZoneTimers: /* 008 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.Envisalink)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.ENVISALINK_TPI)) {
                     break;
                 }
                 validCommand = true;
@@ -587,12 +605,15 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                 break;
             case CommandOutputControl: /* 020 */
                 if (dscAlarmData[0] == null || !dscAlarmData[0].matches("[1-8]")) {
-                    logger.error("sendCommand(): Partition number must be a single character string from 1 to 8, it was: " + dscAlarmData[0]);
+                    logger.error(
+                            "sendCommand(): Partition number must be a single character string from 1 to 8, it was: "
+                                    + dscAlarmData[0]);
                     break;
                 }
 
                 if (dscAlarmData[1] == null || !dscAlarmData[1].matches("[1-4]")) {
-                    logger.error("sendCommand(): Output number must be a single character string from 1 to 4, it was: " + dscAlarmData[1]);
+                    logger.error("sendCommand(): Output number must be a single character string from 1 to 4, it was: "
+                            + dscAlarmData[1]);
                     break;
                 }
 
@@ -600,14 +621,16 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                 validCommand = true;
                 break;
             case KeepAlive: /* 074 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.Envisalink)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.ENVISALINK_TPI)) {
                     break;
                 }
             case PartitionArmControlAway: /* 030 */
             case PartitionArmControlStay: /* 031 */
             case PartitionArmControlZeroEntryDelay: /* 032 */
                 if (dscAlarmData[0] == null || !dscAlarmData[0].matches("[1-8]")) {
-                    logger.error("sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}", dscAlarmData[0]);
+                    logger.error(
+                            "sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}",
+                            dscAlarmData[0]);
                     break;
                 }
                 data = dscAlarmData[0];
@@ -616,7 +639,9 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
             case PartitionArmControlWithUserCode: /* 033 */
             case PartitionDisarmControl: /* 040 */
                 if (dscAlarmData[0] == null || !dscAlarmData[0].matches("[1-8]")) {
-                    logger.error("sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}", dscAlarmData[0]);
+                    logger.error(
+                            "sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}",
+                            dscAlarmData[0]);
                     break;
                 }
 
@@ -624,18 +649,25 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                     logger.error("sendCommand(): User Code is invalid, must be between 4 and 6 chars: {}", userCode);
                     break;
                 }
-                data = dscAlarmData[0] + userCode;
+
+                if (dscAlarmProtocol.equals(DSCAlarmProtocol.IT100_API)) {
+                    data = dscAlarmData[0] + String.format("%-6s", userCode).replace(' ', '0');
+                } else {
+                    data = dscAlarmData[0] + userCode;
+                }
+
                 validCommand = true;
                 break;
             case VirtualKeypadControl: /* 058 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.IT100)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.IT100_API)) {
                     break;
                 }
             case TimeStampControl: /* 055 */
             case TimeDateBroadcastControl: /* 056 */
             case TemperatureBroadcastControl: /* 057 */
                 if (dscAlarmData[0] == null || !dscAlarmData[0].matches("[0-1]")) {
-                    logger.error("sendCommand(): Value must be a single character string of 0 or 1: {}", dscAlarmData[0]);
+                    logger.error("sendCommand(): Value must be a single character string of 0 or 1: {}",
+                            dscAlarmData[0]);
                     break;
                 }
                 data = dscAlarmData[0];
@@ -643,32 +675,64 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
                 break;
             case TriggerPanicAlarm: /* 060 */
                 if (dscAlarmData[0] == null || !dscAlarmData[0].matches("[1-8]")) {
-                    logger.error("sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}", dscAlarmData[0]);
+                    logger.error(
+                            "sendCommand(): Partition number must be a single character string from 1 to 8, it was: {}",
+                            dscAlarmData[0]);
                     break;
                 }
 
                 if (dscAlarmData[1] == null || !dscAlarmData[1].matches("[1-3]")) {
-                    logger.error("sendCommand(): FAPcode must be a single character string from 1 to 3, it was: {}", dscAlarmData[1]);
+                    logger.error("sendCommand(): FAPcode must be a single character string from 1 to 3, it was: {}",
+                            dscAlarmData[1]);
                     break;
                 }
                 data = dscAlarmData[0] + dscAlarmData[1];
                 validCommand = true;
                 break;
             case KeyStroke: /* 070 */
-                if (dscAlarmData[0] == null || dscAlarmData[0].length() != 1 || !dscAlarmData[0].matches("[0-9]|A|#|\\*")) {
-                    logger.error("sendCommand(): \'keystroke\' must be a single character string from 0 to 9, *, #, or A, it was: {}", dscAlarmData[0]);
+                if (dscAlarmProtocol.equals(DSCAlarmProtocol.ENVISALINK_TPI)) {
+                    if (dscAlarmData[0] == null || dscAlarmData[0].length() != 1
+                            || !dscAlarmData[0].matches("[0-9]|A|#|\\*")) {
+                        logger.error(
+                                "sendCommand(): \'keystroke\' must be a single character string from 0 to 9, *, #, or A, it was: {}",
+                                dscAlarmData[0]);
+                        break;
+                    }
+                } else if (dscAlarmProtocol.equals(DSCAlarmProtocol.IT100_API)) {
+                    if (dscAlarmData[0] == null || dscAlarmData[0].length() != 1
+                            || !dscAlarmData[0].matches("[0-9]|\\*|#|F|A|P|[a-e]|<|>|=|\\^|L")) {
+                        logger.error(
+                                "sendCommand(): \'keystroke\' must be a single character string from 0 to 9, *, #, F, A, P, a to e, <, >, =, or ^, it was: {}",
+                                dscAlarmData[0]);
+                        break;
+                    } else if (dscAlarmData[0].equals("L")) { /* Long Key Press */
+                        try {
+                            Thread.sleep(1500);
+                            data = "^";
+                            validCommand = true;
+                            break;
+                        } catch (InterruptedException e) {
+                            logger.error("sendCommand(): \'keystroke\': Error with Long Key Press!");
+                            break;
+                        }
+                    }
+                } else {
                     break;
                 }
+
                 data = dscAlarmData[0];
                 validCommand = true;
                 break;
             case KeySequence: /* 071 */
-                if (!dscAlarmBridgeType.equals(DSCAlarmBridgeType.Envisalink)) {
+                if (!dscAlarmProtocol.equals(DSCAlarmProtocol.ENVISALINK_TPI)) {
                     break;
                 }
 
-                if (dscAlarmData[0] == null || dscAlarmData[0].length() > 6 || !dscAlarmData[0].matches("(\\d|#|\\*)+")) {
-                    logger.error("sendCommand(): \'keysequence\' must be a string of up to 6 characters consiting of 0 to 9, *, or #, it was: {}", dscAlarmData[0]);
+                if (dscAlarmData[0] == null || dscAlarmData[0].length() > 6
+                        || !dscAlarmData[0].matches("(\\d|#|\\*)+")) {
+                    logger.error(
+                            "sendCommand(): \'keysequence\' must be a string of up to 6 characters consiting of 0 to 9, *, or #, it was: {}",
+                            dscAlarmData[0]);
                     break;
                 }
                 data = dscAlarmData[0];
@@ -677,9 +741,11 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
             case CodeSend: /* 200 */
 
                 if (userCode == null || userCode.length() < 4 || userCode.length() > 6) {
-                    logger.error("sendCommand(): Access Code is invalid, must be between 4 and 6 chars: {}", dscAlarmData[0]);
+                    logger.error("sendCommand(): Access Code is invalid, must be between 4 and 6 chars: {}",
+                            dscAlarmData[0]);
                     break;
                 }
+
                 data = userCode;
                 validCommand = true;
                 break;
@@ -695,8 +761,9 @@ public abstract class DSCAlarmBaseBridgeHandler extends BaseBridgeHandler {
             write(cmd);
             successful = true;
             logger.debug("sendCommand(): '{}' Command Sent - {}", dscAlarmCode, cmd);
-        } else
-            logger.error("sendCommand(): Command Not Sent - Invalid!");
+        } else {
+            logger.error("sendCommand(): Command '{}' Not Sent - Invalid!", dscAlarmCode);
+        }
 
         return successful;
     }

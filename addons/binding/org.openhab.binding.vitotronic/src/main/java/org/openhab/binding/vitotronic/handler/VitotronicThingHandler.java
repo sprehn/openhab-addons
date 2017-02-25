@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -24,7 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The {@link VitotronicHandler} is responsible for handling commands, which are
  * sent to one of the channels.
- * 
+ *
  * @author Stefan Andres - Initial contribution
  */
 
@@ -58,32 +59,9 @@ public class VitotronicThingHandler extends BaseThingHandler {
 
     }
 
+    @Override
     public void updateStatus(ThingStatus status) {
         super.updateStatus(status);
-    }
-
-    public void bridgeHandlerInitialized(ThingHandler thingHandler, Bridge bridge) {
-        logger.debug("Bridge Handler for {} initialized", getThing().getUID().getId());
-
-        if (thingHandler instanceof VitotronicBridgeHandler) {
-            this.bridgeHandler = (VitotronicBridgeHandler) thingHandler;
-        } else {
-            logger.debug("No available ThingHandler handler found. Handler: {}", thingHandler.toString());
-            this.bridgeHandler = null;
-        }
-        registerVitotronicThingListener(this.bridgeHandler);
-    }
-
-    public void bridgeHandlerDispose(ThingHandler thingHandler, Bridge bridge) {
-        logger.debug("Bridge Handler for {} disposed", getThing().getUID().getId());
-
-        if (thingHandler instanceof VitotronicBridgeHandler) {
-            this.bridgeHandler = (VitotronicBridgeHandler) thingHandler;
-        } else {
-            logger.debug("No available ThingHandler handler found. Handler: {}", thingHandler.toString());
-            this.bridgeHandler = null;
-        }
-        unregisterVitotronicThingListener(this.bridgeHandler);
     }
 
     private synchronized VitotronicBridgeHandler getBridgeHandler() {
@@ -113,17 +91,19 @@ public class VitotronicThingHandler extends BaseThingHandler {
     }
 
     private void registerVitotronicThingListener(VitotronicBridgeHandler bridgeHandler) {
-        if (bridgeHandler != null)
+        if (bridgeHandler != null) {
             bridgeHandler.registerVitotronicThingListener(this);
-        else
+        } else {
             logger.debug("Can't register {} at bridge bridgeHandler is null.", this.getThing().getUID());
+        }
     }
 
     private void unregisterVitotronicThingListener(VitotronicBridgeHandler bridgeHandler) {
-        if (bridgeHandler != null)
+        if (bridgeHandler != null) {
             bridgeHandler.unregisterThingListener(this);
-        else
+        } else {
             logger.debug("Can't unregister {} at bridge bridgeHandler is null.", this.getThing().getUID());
+        }
 
     }
 
@@ -157,11 +137,12 @@ public class VitotronicThingHandler extends BaseThingHandler {
     public String getActiveChannelListAsString() {
         String channelList = "";
         for (Channel channel : getThing().getChannels()) {
-            if (channel.isLinked()) {
-                if (channelList.length() > 0)
+            if (isLinked(channel.getUID().getId())) {
+                if (channelList.length() > 0) {
                     channelList = channelList + "," + channel.getUID().getId();
-                else
+                } else {
                     channelList = channel.getUID().getId();
+                }
             }
         }
         return channelList;

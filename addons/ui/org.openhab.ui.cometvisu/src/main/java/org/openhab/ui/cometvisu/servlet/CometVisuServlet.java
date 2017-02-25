@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +8,7 @@
  */
 package org.openhab.ui.cometvisu.servlet;
 
+import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -41,6 +43,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.smarthome.core.items.Item;
 import org.eclipse.smarthome.core.items.ItemNotFoundException;
 import org.eclipse.smarthome.core.items.events.ItemEventFactory;
@@ -58,11 +61,10 @@ import org.openhab.ui.cometvisu.internal.config.VisuConfig;
 import org.openhab.ui.cometvisu.internal.editor.dataprovider.beans.DataBean;
 import org.openhab.ui.cometvisu.internal.editor.dataprovider.beans.ItemBean;
 import org.openhab.ui.cometvisu.internal.rrs.beans.Feed;
-import org.openhab.ui.cometvisu.servlet.quercus.PHProvider;
+import org.openhab.ui.cometvisu.php.PHProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.caucho.quercus.QuercusEngine;
 import com.google.gson.Gson;
 
 /**
@@ -110,14 +112,25 @@ public class CometVisuServlet extends HttpServlet {
         defaultUserDir = System.getProperty("user.dir");
         this.cometVisuApp = cometVisuApp;
 
+        PHProvider prov = cometVisuApp.getPHProvider();
+        if (prov != null) {
+            this.setPHProvider(prov);
+        }
+    }
+
+    public void setPHProvider(PHProvider prov) {
+        this.engine = prov;
         this.initQuercusEngine();
+    }
+
+    public void unsetPHProvider() {
+        this.engine = null;
+        this.phpEnabled = false;
     }
 
     private void initQuercusEngine() {
         try {
-            // for some reason the QuercusEngine must be created here, because otherwise the modules are not loaded
-            // and quercus is useless
-            engine = new PHProvider(new QuercusEngine());
+            this.engine.createQuercusEngine();
             this.engine.setIni("include_path", ".:" + rootFolder.getAbsolutePath());
             if (_servletContext != null) {
                 this.engine.init(rootFolder.getAbsolutePath(), defaultUserDir, _servletContext);
@@ -205,7 +218,10 @@ public class CometVisuServlet extends HttpServlet {
 
                     return;
                 } else {
-                    throw new ServletException("Sitemap '" + matcher.group(1) + "' could not be found");
+                    logger.debug("Config file not found. Neither as normal config ('{}') nor as sitemap ('{}.sitemap')",
+                            requestedFile, matcher.group(2));
+                    resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
                 }
             }
         }
@@ -375,7 +391,7 @@ public class CometVisuServlet extends HttpServlet {
                     }
                     if (it.hasNext()) {
                         logger.debug("persisted data for item {} found in service {}", item.getName(),
-                                persistenceService.getName());
+                                persistenceService.getId());
                     }
 
                     // Iterate through the data
@@ -411,7 +427,7 @@ public class CometVisuServlet extends HttpServlet {
                         }
                         feed.entries.add(entry);
                     }
-                    if ("rrd4j".equals(persistenceService.getName())
+                    if ("rrd4j".equals(persistenceService.getId())
                             && FilterCriteria.Ordering.DESCENDING.equals(filter.getOrdering())) {
                         // the RRD4j PersistenceService does not support descending ordering so we do it manually
                         Collections.sort(feed.entries,
@@ -424,7 +440,7 @@ public class CometVisuServlet extends HttpServlet {
                                 });
                     }
                     logger.debug("querying {} item from {} to {} => {} results on service {}", filter.getItemName(),
-                            filter.getBeginDate(), filter.getEndDate(), i, persistenceService.getName());
+                            filter.getBeginDate(), filter.getEndDate(), i, persistenceService.getId());
                 }
                 if (request.getParameter("j") != null) {
                     // request data in JSON format
@@ -505,10 +521,13 @@ public class CometVisuServlet extends HttpServlet {
         }
         // Check if file actually exists in filesystem.
         if (!file.exists()) {
-            // Do your thing if the file appears to be non-existing.
-            // Throw an exception, or send 404, or show default/warning page, or
-            // just ignore it.
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            // show installation hints if the CometVisu-Clients main index.html is requested but cannot be found
+            if (file.getParent().equals(rootFolder.getCanonicalPath())
+                    && (file.getName().equalsIgnoreCase("index.html") || file.getName().length() == 0)) {
+                showInstallationHint(request, response);
+            } else {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
             return;
         }
 
@@ -672,8 +691,6 @@ public class CometVisuServlet extends HttpServlet {
             disposition = accept != null && accepts(accept, contentType) ? "inline" : "attachment";
         }
 
-        // Initialize response.
-        response.reset();
         response.setBufferSize(DEFAULT_BUFFER_SIZE);
         response.setHeader("Content-Disposition", disposition + ";filename=\"" + fileName + "\"");
         response.setHeader("Accept-Ranges", "bytes");
@@ -765,6 +782,20 @@ public class CometVisuServlet extends HttpServlet {
             close(output);
             close(input);
         }
+    }
+
+    /**
+     * Show hints for solving installation problems
+     *
+     * @param request
+     * @param response
+     * @throws IOException
+     */
+    private void showInstallationHint(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        BufferedInputStream in = new BufferedInputStream(getClass().getResourceAsStream("/404.html"));
+        String everything = IOUtils.toString(in);
+        response.getWriter().write(everything);
+        response.flushBuffer();
     }
 
     /**
@@ -860,22 +891,24 @@ public class CometVisuServlet extends HttpServlet {
         } else if (file.getName().equals("list_all_icons.php")) {
             // all item names
             File iconDir = new File(rootFolder, "icon/knx-uf-iconset/128x128_white/");
-            FilenameFilter filter = new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    // TODO Auto-generated method stub
-                    return name.endsWith(".png");
-                }
-            };
-            File[] icons = iconDir.listFiles(filter);
-            Arrays.sort(icons);
-            for (File iconFile : icons) {
-                if (iconFile.isFile()) {
-                    String iconName = iconFile.getName().replace(".png", "");
-                    DataBean bean = new DataBean();
-                    bean.label = iconName;
-                    bean.value = iconName;
-                    beans.add(bean);
+            if (iconDir.exists() && iconDir.isDirectory()) {
+                FilenameFilter filter = new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        // TODO Auto-generated method stub
+                        return name.endsWith(".png");
+                    }
+                };
+                File[] icons = iconDir.listFiles(filter);
+                Arrays.sort(icons);
+                for (File iconFile : icons) {
+                    if (iconFile.isFile()) {
+                        String iconName = iconFile.getName().replace(".png", "");
+                        DataBean bean = new DataBean();
+                        bean.label = iconName;
+                        bean.value = iconName;
+                        beans.add(bean);
+                    }
                 }
             }
         } else if (file.getName().equals("list_all_plugins.php")) {
@@ -908,9 +941,14 @@ public class CometVisuServlet extends HttpServlet {
             // all item names
 
         }
-        response.setContentType(MediaType.APPLICATION_JSON);
-        response.getWriter().write(marshalJson(beans));
-        response.flushBuffer();
+        if (beans.size() == 0) {
+            // nothing found try the PHP files
+            processPhpRequest(file, request, response);
+        } else {
+            response.setContentType(MediaType.APPLICATION_JSON);
+            response.getWriter().write(marshalJson(beans));
+            response.flushBuffer();
+        }
     }
 
     private String marshalJson(Object bean) {

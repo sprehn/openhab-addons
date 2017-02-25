@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openhab</groupId>
         <artifactId>features</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.openhab.addons</groupId>
@@ -25,19 +25,25 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.smarthome</groupId>
-            <artifactId>karaf</artifactId>
+            <artifactId>esh-core</artifactId>
             <version>${esh.version}</version>
             <classifier>features</classifier>
             <type>xml</type>
         </dependency>
         <dependency>
-            <groupId>de.maggu2810.shk</groupId>
-            <artifactId>shk-feature-base</artifactId>
-            <version>${shk.version}</version>
+            <groupId>org.eclipse.smarthome</groupId>
+            <artifactId>esh-tp</artifactId>
+            <version>${esh.version}</version>
             <classifier>features</classifier>
             <type>xml</type>
-            <scope>runtime</scope>
-        </dependency>        
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.smarthome</groupId>
+            <artifactId>esh-ext</artifactId>
+            <version>${esh.version}</version>
+            <classifier>features</classifier>
+            <type>xml</type>
+        </dependency>
         <dependency>
             <groupId>org.openhab.core</groupId>
             <artifactId>openhab-core</artifactId>
@@ -70,8 +76,9 @@
                             <descriptors>
                                 <descriptor>mvn:org.apache.karaf.features/framework/${karaf.version}/xml/features</descriptor>
                                 <descriptor>mvn:org.apache.karaf.features/standard/${karaf.version}/xml/features</descriptor>
-                                <descriptor>mvn:org.eclipse.smarthome/karaf/${esh.version}/xml/features</descriptor>
-                                <descriptor>mvn:de.maggu2810.shk/shk-feature-base/${shk.version}/xml/features</descriptor>
+                                <descriptor>mvn:org.eclipse.smarthome/esh-core/${esh.version}/xml/features</descriptor>
+                                <descriptor>mvn:org.eclipse.smarthome/esh-tp/${esh.version}/xml/features</descriptor>
+                                <descriptor>mvn:org.eclipse.smarthome/esh-ext/${esh.version}/xml/features</descriptor>
                                 <descriptor>mvn:org.openhab.core/openhab-core/${ohc.version}/xml/features</descriptor>
                                 <descriptor>mvn:org.openhab.addons/openhab2-addons/${project.version}/xml/features</descriptor>
                             </descriptors>

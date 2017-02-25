@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -72,6 +73,14 @@ public class KeypadHandler extends LutronHandler {
         this.integrationId = id.intValue();
 
         updateStatus(ThingStatus.ONLINE);
+
+        queryDevice(COMPONENT_LED1, LED_STATE);
+        queryDevice(COMPONENT_LED2, LED_STATE);
+        queryDevice(COMPONENT_LED3, LED_STATE);
+        queryDevice(COMPONENT_LED4, LED_STATE);
+        queryDevice(COMPONENT_LED5, LED_STATE);
+        queryDevice(COMPONENT_LED6, LED_STATE);
+        queryDevice(COMPONENT_LED7, LED_STATE);
     }
 
     private ChannelUID channelFromComponent(int component) {

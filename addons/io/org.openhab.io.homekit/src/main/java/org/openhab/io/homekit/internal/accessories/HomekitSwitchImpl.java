@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -10,6 +10,8 @@ package org.openhab.io.homekit.internal.accessories;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.smarthome.core.items.GenericItem;
+import org.eclipse.smarthome.core.items.GroupItem;
 import org.eclipse.smarthome.core.items.ItemRegistry;
 import org.eclipse.smarthome.core.library.items.SwitchItem;
 import org.eclipse.smarthome.core.library.types.OnOffType;
@@ -38,7 +40,12 @@ public class HomekitSwitchImpl extends AbstractHomekitAccessoryImpl<SwitchItem>i
 
     @Override
     public CompletableFuture<Void> setSwitchState(boolean state) throws Exception {
-        getItem().send(state ? OnOffType.ON : OnOffType.OFF);
+        GenericItem item = getItem();
+        if (item instanceof SwitchItem) {
+            ((SwitchItem) item).send(state ? OnOffType.ON : OnOffType.OFF);
+        } else if (item instanceof GroupItem) {
+            ((GroupItem) item).send(state ? OnOffType.ON : OnOffType.OFF);
+        }
         return CompletableFuture.completedFuture(null);
     }
 

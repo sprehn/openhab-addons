@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -10,7 +10,7 @@ package org.openhab.binding.dscalarm.config;
 
 /**
  * Configuration class for the DSC IT100 RS232 Serial interface bridge, used to connect to the DSC Alarm system.
- * 
+ *
  * @author Russell Stephens - Initial contribution
  */
 
@@ -22,7 +22,8 @@ public class IT100BridgeConfiguration {
     public static final String POLL_PERIOD = "pollPeriod";
 
     /**
-     * DSC IT100 port name for a serial connection. Valid values are e.g. COM1 for Windows and /dev/ttyS0 or /dev/ttyUSB0 for Linux.
+     * DSC IT100 port name for a serial connection. Valid values are e.g. COM1 for Windows and /dev/ttyS0 or
+     * /dev/ttyUSB0 for Linux.
      */
     public String serialPort;
 

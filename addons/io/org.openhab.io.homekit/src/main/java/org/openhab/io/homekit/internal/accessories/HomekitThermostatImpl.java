@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -19,6 +19,7 @@ import org.eclipse.smarthome.core.library.items.NumberItem;
 import org.eclipse.smarthome.core.library.items.StringItem;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.StringType;
+import org.eclipse.smarthome.core.types.State;
 import org.openhab.io.homekit.internal.HomekitAccessoryUpdater;
 import org.openhab.io.homekit.internal.HomekitSettings;
 import org.openhab.io.homekit.internal.HomekitTaggedItem;
@@ -95,7 +96,7 @@ class HomekitThermostatImpl extends AbstractTemperatureHomekitAccessoryImpl<Grou
     @Override
     public CompletableFuture<ThermostatMode> getCurrentMode() {
         Item item = getItemRegistry().get(heatingCoolingModeItemName);
-        StringType state = (StringType) item.getStateAs(StringType.class);
+        State state = item.getState();
         ThermostatMode mode;
         if (state != null) {
             String stringValue = state.toString();
@@ -107,6 +108,9 @@ class HomekitThermostatImpl extends AbstractTemperatureHomekitAccessoryImpl<Grou
             } else if (stringValue.equals(settings.getThermostatAutoMode())) {
                 mode = ThermostatMode.AUTO;
             } else if (stringValue.equals(settings.getThermostatOffMode())) {
+                mode = ThermostatMode.OFF;
+            } else if (  stringValue.equals("UNDEF") || stringValue.equals("NULL") ) {
+                logger.debug("Heating cooling target mode not available. Relaying value of OFF to Homekit");
                 mode = ThermostatMode.OFF;
             } else {
                 logger.error("Unrecognized heating cooling target mode: " + stringValue
@@ -170,13 +174,13 @@ class HomekitThermostatImpl extends AbstractTemperatureHomekitAccessoryImpl<Grou
                 break;
         }
         StringItem item = getGenericItem(heatingCoolingModeItemName);
-        item.setState(new StringType(modeString));
+        item.send(new StringType(modeString));
     }
 
     @Override
     public void setTargetTemperature(Double value) throws Exception {
         NumberItem item = getGenericItem(targetTemperatureItemName);
-        item.setState(new DecimalType(BigDecimal.valueOf(convertFromCelsius(value))));
+        item.send(new DecimalType(BigDecimal.valueOf(convertFromCelsius(value))));
     }
 
     @Override

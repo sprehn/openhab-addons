@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -19,9 +19,9 @@ import java.util.Map;
  */
 public enum HomekitCharacteristicType {
 
-    CURRENT_TEMPERATURE("currentTemperature"),
-    TARGET_TEMPERATURE("targetTemperature"),
-    HEATING_COOLING_MODE("heatingCoolingMode");
+    CURRENT_TEMPERATURE("CurrentTemperature"),
+    TARGET_TEMPERATURE("TargetTemperature"),
+    HEATING_COOLING_MODE("homekit:HeatingCoolingMode");
 
     private static final Map<String, HomekitCharacteristicType> tagMap = new HashMap<>();
 

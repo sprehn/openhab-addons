@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2010-2017 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The S message contains information about Command execution results
+ * The {@link S_Message} contains information about Command execution results
  *
  * @author Bernd Michael Helm (bernd.helm at helmundwalter.de)
  * @author Marcel Verpaalen - OH2 version + parsing of the message
@@ -35,7 +35,7 @@ public final class S_Message extends Message {
         if (tokens.length == 3) {
             try {
                 dutyCycle = Integer.parseInt(tokens[0], 16);
-                commandDiscarded = tokens[1] == "1";
+                commandDiscarded = tokens[1].contentEquals("1");
                 freeMemorySlots = Integer.parseInt(tokens[2], 16);
             } catch (Exception e) {
                 logger.debug("Exception occurred during parsing of S message: {}", e.getMessage(), e);

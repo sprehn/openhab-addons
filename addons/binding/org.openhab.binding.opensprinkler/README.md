@@ -16,7 +16,7 @@ This binding allows allows basic control of the OpenSprinkler and OpenSprinkler 
 OpenSprinkler
 
 ```
-opensprinkler:http:1 [ hostname="127.0.0.1", port="80", password="opendoor", refresh="60" ]
+opensprinkler:http:1 [ hostname="127.0.0.1", port=80, password="opendoor", refresh=60 ]
 ```
 
 - hostname: Hostname or IP address of the OpenSprinkler HTTP API.
@@ -27,7 +27,7 @@ opensprinkler:http:1 [ hostname="127.0.0.1", port="80", password="opendoor", ref
 OpenSprinkler PI
 
 ```
-opensprinkler:pi:1 [ stations="8", refresh="60" ]
+opensprinkler:pi:1 [ stations=8, refresh=60 ]
 ```
 
 - stations: Number of stations to control.
@@ -96,12 +96,14 @@ The following are only support by the OpenSprinkler using the HTTP API interface
 
 ## Full Example
 
-demo.things:
+demo.Things:
+
 ```
 opensprinkler:http:1 [ hostname="192.168.1.23", port=80, password="opendoor", refresh=60 ]
 ```
 
 demo.items:
+
 ```
 Group stations
 Switch Station01 (stations) { channel="opensprinkler:http:1:station01" }
@@ -117,6 +119,7 @@ Switch RainSensor { channel="opensprinkler:http:1:rainsensor" }
 ```
 
 demo.sitemap:
+
 ```
 sitemap demo label="Main Menu"
 {
