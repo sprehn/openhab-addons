@@ -58,7 +58,7 @@ public class VolumeControlMute extends AbstractChannelHandler<MuteListener> {
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error: {} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override

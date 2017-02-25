@@ -60,10 +60,14 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
         Util.uninit();
     }
 
+    // @Override
     @Override
     protected void startScan() {
-        // no adhoc scanning. Discovery Service runs in background
-        // TODO: find devices in DiscoveryManager connectable devices that are not connected to a thing handler
+        // no adhoc scanning. Discovery Service runs in background, but re-discover all known devices incase they were
+        // deleted from the inbox.
+        for (ConnectableDevice d : discoveryManager.getCompatibleDevices().values()) {
+            thingDiscovered(createDiscoveryResult(d));
+        }
     }
 
     @Override

@@ -61,7 +61,7 @@ public class VolumeControlVolume extends AbstractChannelHandler<VolumeListener> 
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error: {} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override
