@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 
 /**
  * @author Sebastian Prehn
- * @since 2.0.0
+ * @since 2.1.0
  */
 public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfoListener> {
     private static final Logger logger = LoggerFactory.getLogger(LauncherApplication.class);
@@ -45,7 +45,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error requesting channel list: {}.", error.getMessage());
+                    logger.error("error requesting application list: {}.", error.getMessage());
                 }
 
                 @Override
@@ -80,7 +80,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error: {} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override

@@ -8,7 +8,7 @@
     http://www.eclipse.org/legal/epl-v10.html
 
 -->
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" configuration-policy="optional" immediate="true" name="binding.connectsdk.discovery">
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="binding.connectsdk">
    <implementation class="org.openhab.binding.connectsdk.internal.discovery.ConnectSDKDiscovery"/>
    <service>
       <provide interface="org.eclipse.smarthome.config.discovery.DiscoveryService"/>

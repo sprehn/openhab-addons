@@ -44,7 +44,7 @@ public class TVControlChannel extends AbstractChannelHandler<ChannelListener> {
             control.getChannelList(new TVControl.ChannelListListener() {
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error requesting channel list: {}.", error.getMessage());
+                    logger.error("error requesting channel list: {}.", error.getMessage());
                 }
 
                 @Override
