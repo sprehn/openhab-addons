@@ -2,6 +2,7 @@ package org.openhab.binding.connectsdk.internal.discovery;
 
 import static org.openhab.binding.connectsdk.ConnectSDKBindingConstants.*;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -17,32 +18,33 @@ import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.connectsdk.ConnectSDKBindingConstants;
-import org.openhab.binding.connectsdk.internal.ContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.connectsdk.core.Context;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.command.ServiceCommandError;
 
-public class ConnectSDKDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener {
+public class ConnectSDKDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
     private static final Logger logger = LoggerFactory.getLogger(ConnectSDKDiscovery.class);
 
     private DiscoveryManager discoveryManager;
 
+    private InetAddress localInetAddresses;
+
     public ConnectSDKDiscovery() {
         super(ConnectSDKBindingConstants.SUPPORTED_THING_TYPES_UIDS, 60, true);
-        ContextImpl ctx = new ContextImpl();
-        DiscoveryManager.init(ctx);
+        DiscoveryManager.init(this);
     }
 
     @Override
     protected void activate(Map<String, Object> configProperties) {
         logger.info(configProperties.toString());
-        InetAddress ip = findLocalInetAddresses((String) configProperties.get("localIP"));
-        Util.start(AbstractDiscoveryService.scheduler, ip);
+        localInetAddresses = findLocalInetAddresses((String) configProperties.get("localIP"));
+        Util.init(AbstractDiscoveryService.scheduler);
         discoveryManager = DiscoveryManager.getInstance();
         discoveryManager.setPairingLevel(DiscoveryManager.PairingLevel.ON);
         discoveryManager.addListener(this);
@@ -55,7 +57,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
         discoveryManager.removeListener(this);
         discoveryManager = null;
         DiscoveryManager.destroy();
-        Util.stop();
+        Util.uninit();
     }
 
     @Override
@@ -116,6 +118,29 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
         return this.discoveryManager;
     }
 
+    // Context for connect sdk
+    private final String DATA_DIR = new File("etc" + File.separator + "connect_sdk").getAbsolutePath();
+
+    @Override
+    public String getDataDir() {
+        return DATA_DIR;
+    }
+
+    @Override
+    public String getApplicationName() {
+        return "Openhab";
+    }
+
+    @Override
+    public String getPackageName() {
+        return "org.openhab";
+    }
+
+    @Override
+    public InetAddress getIpAddress() {
+        return localInetAddresses;
+    }
+
     /**
      * Get local IP either through configuration or auto detection.
      * Method will ignore loopback addresses.
@@ -174,5 +199,4 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
 
         return null;
     }
-
 }
