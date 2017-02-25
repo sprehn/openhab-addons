@@ -27,6 +27,7 @@
 			<channel id="mediaRewind" typeId="mediaRewindChannelType" />
 			<channel id="mediaStop" typeId="mediaStopChannelType" />
 			<channel id="mediaState" typeId="mediaStateChannelType" />
+			<channel id="appLauncher" typeId="appLauncherChannelType" />
 		</channels>
 
 		<!--  property as IP must not be changed -->
@@ -136,6 +137,10 @@
 		<category>Player</category>
 		<state readOnly="true" />
 	</channel-type>
-
+    <channel-type id="appLauncherChannelType">
+        <item-type>String</item-type>
+        <label>Application</label>
+        <description>Currently running application</description>
+    </channel-type>
 
 </thing:thing-descriptions>
