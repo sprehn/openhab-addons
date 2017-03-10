@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 
 /**
  * @author Sebastian Prehn
- * @since 2.0.0
+ * @since 2.1.0
  */
 public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfoListener> {
     private static final Logger logger = LoggerFactory.getLogger(LauncherApplication.class);

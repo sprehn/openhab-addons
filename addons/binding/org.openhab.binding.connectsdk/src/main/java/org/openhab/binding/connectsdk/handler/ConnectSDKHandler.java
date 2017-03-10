@@ -50,6 +50,8 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
             .put(CHANNEL_CHANNEL_UP, new TVControlUp()).put(CHANNEL_CHANNEL_DOWN, new TVControlDown())
             .put(CHANNEL_CHANNEL_NAME, new TVControlChannelName()).put(CHANNEL_PROGRAM, new TVControlProgram())
             .put(CHANNEL_EXT_INPUT, new ExternalInputControlInput()).put(CHANNEL_APP_LAUCHER, new LauncherApplication())
+            .put(CHANNEL_YOUTUBE_LAUCHER, new LaunchYoutube()).put(CHANNEL_NETFLIX_LAUCHER, new LaunchNetflix())
+            .put(CHANNEL_HULU_LAUCHER, new LaunchHulu()).put(CHANNEL_BROWSER_LAUCHER, new LaunchBrowser())
             .put(CHANNEL_MEDIA_FORWARD, new MediaControlForward()).put(CHANNEL_MEDIA_PAUSE, new MediaControlPause())
             .put(CHANNEL_MEDIA_PLAY, new MediaControlPlay()).put(CHANNEL_MEDIA_REWIND, new MediaControlRewind())
             .put(CHANNEL_MEDIA_STOP, new MediaControlStop()).put(CHANNEL_MEDIA_STATE, new MediaControlPlayState())
