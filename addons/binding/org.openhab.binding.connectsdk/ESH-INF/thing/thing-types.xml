@@ -29,8 +29,8 @@
 			<channel id="mediaState" typeId="mediaStateChannelType" />
 			<channel id="appLauncher" typeId="appLauncherChannelType" />
 			<channel id="netflixLauncher" typeId="netflixLauncherChannelType" />
-			<!-- channel id="huluLauncher" typeId="huluLauncherChannelType" />
-			<channel id="youtubeLauncher" typeId="youtubeLauncherChannelType" -->
+			<channel id="huluLauncher" typeId="huluLauncherChannelType" />
+			<channel id="youtubeLauncher" typeId="youtubeLauncherChannelType" />
 			<channel id="browserLauncher" typeId="browserLauncherChannelType" />
 		</channels>
 
