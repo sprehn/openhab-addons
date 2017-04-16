@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
@@ -29,6 +30,8 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class ConnectSDKAction implements ActionService {
     private static final Logger logger = LoggerFactory.getLogger(ConnectSDKAction.class);
@@ -83,12 +86,41 @@ public class ConnectSDKAction implements ActionService {
         }
     }
 
-    @ActionDoc(text = "opens the given application")
+    @ActionDoc(text = "opens the application with given appId")
     public static void launchApplication(@ParamDoc(name = "deviceId") String deviceId,
             @ParamDoc(name = "appId") final String appId) {
         Launcher control = getControl(Launcher.class, deviceId);
         if (control != null) {
             control.launchApp(appId, createDefaultResponseListener());
+        }
+    }
+
+    @ActionDoc(text = "opens the application with given appId and passes additional parameters")
+    public static void launchApplicationWithParams(@ParamDoc(name = "deviceId") String deviceId,
+            @ParamDoc(name = "appId") final String appId, Object param) {
+        Launcher control = getControl(Launcher.class, deviceId);
+        if (control != null) {
+            control.getAppList(new Launcher.AppListListener() {
+                @Override
+                public void onError(ServiceCommandError error) {
+                    logger.error("error requesting application list: {}.", error.getMessage());
+                }
+
+                @Override
+                public void onSuccess(List<AppInfo> appInfos) {
+                    try {
+                        AppInfo appInfo = Iterables.find(appInfos, new Predicate<AppInfo>() {
+                            @Override
+                            public boolean apply(AppInfo a) {
+                                return a.getId().equals(appId);
+                            };
+                        });
+                        control.launchAppWithInfo(appInfo, param, createDefaultResponseListener());
+                    } catch (NoSuchElementException ex) {
+                        logger.warn("TV does not support any app with id: {}.", appId);
+                    }
+                }
+            });
         }
     }
 
@@ -112,9 +144,10 @@ public class ConnectSDKAction implements ActionService {
 
             @Override
             public void onSuccess(List<AppInfo> appInfos) {
-
-                for (AppInfo a : appInfos) {
-                    logger.debug("AppInfo {} - {}", a.getId(), a.getName());
+                if (logger.isDebugEnabled()) {
+                    for (AppInfo a : appInfos) {
+                        logger.debug("AppInfo {} - {}", a.getId(), a.getName());
+                    }
                 }
                 try {
                     result.put(appInfos.stream().map(new Function<AppInfo, String>() {

@@ -28,10 +28,6 @@
 			<channel id="mediaStop" typeId="mediaStopChannelType" />
 			<channel id="mediaState" typeId="mediaStateChannelType" />
 			<channel id="appLauncher" typeId="appLauncherChannelType" />
-			<channel id="netflixLauncher" typeId="netflixLauncherChannelType" />
-			<channel id="huluLauncher" typeId="huluLauncherChannelType" />
-			<channel id="youtubeLauncher" typeId="youtubeLauncherChannelType" />
-			<channel id="browserLauncher" typeId="browserLauncherChannelType" />
 		</channels>
 
 		<!--  property as IP must not be changed -->
@@ -145,26 +141,6 @@
         <item-type>String</item-type>
         <label>Application</label>
         <description>Start application and monitor running applications</description>
-    </channel-type>
-    <channel-type id="youtubeLauncherChannelType">
-        <item-type>String</item-type>
-        <label>Youtube</label>
-        <description>Start Youtube content</description>
-    </channel-type>
-    <channel-type id="netflixLauncherChannelType">
-        <item-type>String</item-type>
-        <label>Netflix</label>
-        <description>Start Netflix movie</description>
-    </channel-type>
-    <channel-type id="huluLauncherChannelType">
-        <item-type>String</item-type>
-        <label>Hulu</label>
-        <description>Start Hulu movie</description>
-    </channel-type>    
-    <channel-type id="browserLauncherChannelType">
-        <item-type>String</item-type>
-        <label>Browser</label>
-        <description>Open URL in browser</description>
     </channel-type>
 
 </thing:thing-descriptions>

@@ -45,7 +45,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error requesting channel list: {}.", error.getMessage());
+                    logger.error("error requesting application list: {}.", error.getMessage());
                 }
 
                 @Override
@@ -80,7 +80,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.debug("error: {} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override

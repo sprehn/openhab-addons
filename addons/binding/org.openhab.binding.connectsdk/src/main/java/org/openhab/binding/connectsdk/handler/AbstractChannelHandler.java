@@ -21,7 +21,7 @@ import com.connectsdk.service.command.ServiceSubscription;
 
 /**
  * An abstract implementation of ChannelHander which serves as a base class for all concrete instances.
- * 
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */
@@ -93,13 +93,13 @@ public abstract class AbstractChannelHandler<T> implements ChannelHandler {
 
             @Override
             public void onError(ServiceCommandError error) {
-                logger.error("Error {}: {}.", this.getClass().getName(), error.getMessage());
+                logger.error("{}: {}.", this.getClass().getName(), error.getMessage());
 
             }
 
             @Override
             public void onSuccess(O object) {
-                logger.debug("Success {}: {}.", this.getClass().getName(), object);
+                logger.debug("{}: {}.", this.getClass().getName(), object);
             }
         };
     }
