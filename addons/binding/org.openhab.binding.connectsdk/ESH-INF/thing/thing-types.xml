@@ -18,8 +18,8 @@
 			<channel id="channelUp" typeId="channelUpChannelType" />
 			<channel id="channelDown" typeId="channelDownChannelType" />
 			<channel id="channelName" typeId="channelNameChannelType" />
-			<channel id="program" typeId="programChannelType" />
-			<channel id="externalInput" typeId="externalInputChannelType" />
+			<!-- channel id="program" typeId="programChannelType" />
+			<channel id="externalInput" typeId="externalInputChannelType" / -->
             <channel id="toast" typeId="toastChannelType" />			
 			<channel id="mediaForward" typeId="mediaForwardChannelType" />
 			<channel id="mediaPause" typeId="mediaPauseChannelType" />
@@ -50,7 +50,7 @@
 	<channel-type id="powerChannelType">
 		<item-type>Switch</item-type>
 		<label>Power</label>
-		<description>Current Power Setting</description>
+		<description>Via this binding TV can only be powered off, not on.</description>
 		<category>PowerOutlet</category>
 	</channel-type>
 	<channel-type id="muteChannelType">
@@ -60,10 +60,9 @@
 		<category>Switch</category>
 	</channel-type>
 	<channel-type id="channelChannelType">
-		<item-type>Number</item-type>
+		<item-type>String</item-type>
 		<label>Channel</label>
-		<description>Current Channel Number</description>
-		<state min="0" step="1"></state>
+		<description>Current Channel</description>
 	</channel-type>
 
 	<channel-type id="toastChannelType">
@@ -96,7 +95,7 @@
 		<description>Current Channel Name</description>
 		<state readOnly="true" />
 	</channel-type>
-	<channel-type id="programChannelType">
+	<!-- channel-type id="programChannelType">
 		<item-type>String</item-type>
 		<label>Program</label>
 		<description>Current Program Name</description>
@@ -105,7 +104,7 @@
 	<channel-type id="externalInputChannelType">
 		<item-type>String</item-type>
 		<label>External Input</label>
-	</channel-type>
+	</channel-type -->
 	<channel-type id="mediaForwardChannelType">
 		<item-type>Switch</item-type>
 		<label>Forward</label>

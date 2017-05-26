@@ -43,13 +43,14 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     private DiscoveryManager discoveryManager;
 
     // ChannelID to CommandHandler Map
+    // .put(CHANNEL_EXT_INPUT, new ExternalInputControlInput())
+    // .put(CHANNEL_PROGRAM, new TVControlProgram())
     private final Map<String, ChannelHandler> channelHandlers = ImmutableMap.<String, ChannelHandler>builder()
             .put(CHANNEL_VOLUME, new VolumeControlVolume()).put(CHANNEL_VOLUME_UP, new VolumeControlUp())
             .put(CHANNEL_VOLUME_DOWN, new VolumeControlDown()).put(CHANNEL_POWER, new PowerControlPower())
             .put(CHANNEL_MUTE, new VolumeControlMute()).put(CHANNEL_CHANNEL, new TVControlChannel())
             .put(CHANNEL_CHANNEL_UP, new TVControlUp()).put(CHANNEL_CHANNEL_DOWN, new TVControlDown())
-            .put(CHANNEL_CHANNEL_NAME, new TVControlChannelName()).put(CHANNEL_PROGRAM, new TVControlProgram())
-            .put(CHANNEL_EXT_INPUT, new ExternalInputControlInput()).put(CHANNEL_APP_LAUCHER, new LauncherApplication())
+            .put(CHANNEL_CHANNEL_NAME, new TVControlChannelName()).put(CHANNEL_APP_LAUCHER, new LauncherApplication())
             .put(CHANNEL_MEDIA_FORWARD, new MediaControlForward()).put(CHANNEL_MEDIA_PAUSE, new MediaControlPause())
             .put(CHANNEL_MEDIA_PLAY, new MediaControlPlay()).put(CHANNEL_MEDIA_REWIND, new MediaControlRewind())
             .put(CHANNEL_MEDIA_STOP, new MediaControlStop()).put(CHANNEL_MEDIA_STATE, new MediaControlPlayState())
