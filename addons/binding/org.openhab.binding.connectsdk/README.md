@@ -18,7 +18,7 @@ Note: Under general settings allow mobile applications to turn on the TV, if thi
 
 ## Binding Configuration
 
-The binding has only one configuration parameter, which is only required if the binding cannot atomatically detect OpenHAB's local IP address: 
+The binding has only one configuration parameter, which is only required if the binding cannot automatically detect OpenHAB's local IP address: 
 
 | Name | Description |
 | --- | --- |
