@@ -12,15 +12,14 @@ LG webOS based smart TVs are supported.
 #### TV Settings
 
 The TV must be connected to the same network as OpenHAB with a permanent IP address. If the IP changes the binding will discover it as a different device. 
+Under network settings allow "LG CONNECT APPS" to connect.
 
-* Connected to the same network as OpenHab
-* Under network settings allow "LG CONNECT APPS" to connect.
-
-Note: Under general settings allow mobile applications to connect, if this option is available. In combination with the wake on LAN binding this will allow you to start the TV via OpenHAB.
+Note: Under general settings allow mobile applications to turn on the TV, if this option is available. In combination with the wake on LAN binding this will allow you to start the TV via OpenHAB.
 
 ## Binding Configuration
 
 The binding has only one configuration parameter, which is only required if the binding cannot atomatically detect OpenHAB's local IP address: 
+
 | Name | Description |
 | --- | --- |
 | LocalIP |  This is the local IP of your OpenHAB host on the network. (Optional) |
