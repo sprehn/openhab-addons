@@ -26,7 +26,7 @@ import com.google.common.collect.Iterables;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class ExternalInputControlInput extends AbstractChannelHandler<ExternalInputListListener> {
+public class ExternalInputControlInput extends BaseChannelHandler<ExternalInputListListener> {
     private final Logger logger = LoggerFactory.getLogger(ExternalInputControlInput.class);
 
     private ExternalInputControl getControl(final ConnectableDevice device) {

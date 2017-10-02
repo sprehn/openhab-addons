@@ -25,7 +25,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class VolumeControlVolume extends AbstractChannelHandler<VolumeListener> {
+public class VolumeControlVolume extends BaseChannelHandler<VolumeListener> {
     private Logger logger = LoggerFactory.getLogger(VolumeControlVolume.class);
 
     private VolumeControl getControl(final ConnectableDevice device) {

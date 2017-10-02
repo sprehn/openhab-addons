@@ -21,7 +21,7 @@ import com.connectsdk.service.capability.PowerControl;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class PowerControlPower extends AbstractChannelHandler<Void> {
+public class PowerControlPower extends BaseChannelHandler<Void> {
     private Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
 
     private PowerControl getControl(final ConnectableDevice device) {

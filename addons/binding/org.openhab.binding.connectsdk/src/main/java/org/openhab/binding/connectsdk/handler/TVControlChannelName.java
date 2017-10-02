@@ -24,7 +24,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class TVControlChannelName extends AbstractChannelHandler<ChannelListener> {
+public class TVControlChannelName extends BaseChannelHandler<ChannelListener> {
     private Logger logger = LoggerFactory.getLogger(TVControlChannelName.class);
 
     private TVControl getControl(final ConnectableDevice device) {
