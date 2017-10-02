@@ -17,7 +17,7 @@ import com.connectsdk.service.capability.VolumeControl;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class VolumeControlDown extends AbstractChannelHandler<Void> {
+public class VolumeControlDown extends BaseChannelHandler<Void> {
 
     private VolumeControl getControl(final ConnectableDevice device) {
         return device.getCapability(VolumeControl.class);

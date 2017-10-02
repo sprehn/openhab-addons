@@ -25,8 +25,8 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public abstract class AbstractChannelHandler<T> implements ChannelHandler {
-    private Logger logger = LoggerFactory.getLogger(AbstractChannelHandler.class);
+abstract class BaseChannelHandler<T> implements ChannelHandler {
+    private Logger logger = LoggerFactory.getLogger(BaseChannelHandler.class);
 
     // IP to Subscriptions map
     private Map<String, ServiceSubscription<T>> subscriptions;

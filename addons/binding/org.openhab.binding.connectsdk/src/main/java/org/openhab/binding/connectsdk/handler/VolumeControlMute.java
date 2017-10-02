@@ -24,7 +24,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class VolumeControlMute extends AbstractChannelHandler<MuteListener> {
+public class VolumeControlMute extends BaseChannelHandler<MuteListener> {
     private Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
 
     private VolumeControl getControl(final ConnectableDevice device) {

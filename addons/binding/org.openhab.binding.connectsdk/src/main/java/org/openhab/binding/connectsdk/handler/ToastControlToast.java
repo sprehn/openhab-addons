@@ -26,7 +26,7 @@ import com.connectsdk.service.capability.ToastControl;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class ToastControlToast extends AbstractChannelHandler<Void> {
+public class ToastControlToast extends BaseChannelHandler<Void> {
     private Logger logger = LoggerFactory.getLogger(ToastControlToast.class);
 
     private ToastControl getControl(final ConnectableDevice device) {

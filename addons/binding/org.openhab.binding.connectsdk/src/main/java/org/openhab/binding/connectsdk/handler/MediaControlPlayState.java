@@ -24,7 +24,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class MediaControlPlayState extends AbstractChannelHandler<PlayStateListener> {
+public class MediaControlPlayState extends BaseChannelHandler<PlayStateListener> {
     private Logger logger = LoggerFactory.getLogger(MediaControlPlayState.class);
 
     private MediaControl getControl(final ConnectableDevice device) {

@@ -17,7 +17,7 @@ import com.connectsdk.service.capability.MediaControl;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class MediaControlForward extends AbstractChannelHandler<Void> {
+public class MediaControlForward extends BaseChannelHandler<Void> {
 
     private MediaControl getControl(final ConnectableDevice device) {
         return device.getCapability(MediaControl.class);

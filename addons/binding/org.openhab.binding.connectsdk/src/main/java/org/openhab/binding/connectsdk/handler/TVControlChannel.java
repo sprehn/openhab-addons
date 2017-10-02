@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class TVControlChannel extends AbstractChannelHandler<ChannelListener> {
+public class TVControlChannel extends BaseChannelHandler<ChannelListener> {
     private Logger logger = LoggerFactory.getLogger(TVControlChannel.class);
 
     private TVControl getControl(final ConnectableDevice device) {

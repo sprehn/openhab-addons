@@ -64,13 +64,13 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("internalReceiveCommand({},{}) is called", channelUID, command);
         ChannelHandler handler = channelHandlers.get(channelUID.getId());
-        final ConnectableDevice d = getDevice();
-        if (d == null) {
+        final ConnectableDevice device = getDevice();
+        if (device == null) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     String.format("%s not found under connect sdk devices", getThing().getUID()));
             return;
         }
-        handler.onReceiveCommand(d, command);
+        handler.onReceiveCommand(device, command);
     }
 
     private ConnectableDevice getDevice() {
@@ -82,14 +82,14 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     public void initialize() {
         this.discoveryManager.addListener(this);
 
-        ConnectableDevice d = getDevice();
-        if (d == null) {// If TV is off getDevice() will return null
+        ConnectableDevice device = getDevice();
+        if (device == null) {// If TV is off getDevice() will return null
             updateStatus(ThingStatus.OFFLINE);
             return;
         } else {
-            d.addListener(this);
+            device.addListener(this);
             if (isAnyChannelLinked()) {
-                d.connect(); // if successful onDeviceReady will set online state
+                device.connect(); // if successful onDeviceReady will set online state
             } else {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_PENDING,
                         "Will connect when at least one channel is linked.");
@@ -100,9 +100,9 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     @Override
     public void dispose() {
         super.dispose();
-        ConnectableDevice d = getDevice();
-        if (d != null) {
-            d.removeListener(this);
+        ConnectableDevice device = getDevice();
+        if (device != null) {
+            device.removeListener(this);
         }
         this.discoveryManager.removeListener(this);
         this.discoveryManager = null;

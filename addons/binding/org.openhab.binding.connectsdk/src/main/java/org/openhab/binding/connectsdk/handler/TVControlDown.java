@@ -17,7 +17,7 @@ import com.connectsdk.service.capability.TVControl;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class TVControlDown extends AbstractChannelHandler<Void> {
+public class TVControlDown extends BaseChannelHandler<Void> {
 
     private TVControl getControl(final ConnectableDevice device) {
         return device.getCapability(TVControl.class);
