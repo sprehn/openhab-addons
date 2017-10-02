@@ -93,7 +93,7 @@ public abstract class AbstractChannelHandler<T> implements ChannelHandler {
 
             @Override
             public void onError(ServiceCommandError error) {
-                logger.error("{}: {}.", this.getClass().getName(), error.getMessage());
+                logger.warn("{}: {}.", this.getClass().getName(), error.getMessage());
 
             }
 

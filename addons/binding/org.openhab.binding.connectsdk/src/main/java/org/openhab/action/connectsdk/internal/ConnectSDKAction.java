@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.openhab.action.connectsdk.internal;
 
 import java.awt.image.BufferedImage;
@@ -30,6 +37,7 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.sessions.LaunchSession;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
@@ -37,6 +45,8 @@ public class ConnectSDKAction implements ActionService {
     private static final Logger logger = LoggerFactory.getLogger(ConnectSDKAction.class);
 
     private static ConnectSDKDiscovery discovery;
+    private static ResponseListener<LaunchSession> responseListenerLaunchSession = createDefaultResponseListener();
+    private static ResponseListener<Object> responseListenerObject = createDefaultResponseListener();
 
     @Override
     public String getActionClassName() {
@@ -72,7 +82,7 @@ public class ConnectSDKAction implements ActionService {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             ImageIO.write(bi, "png", os);
             control.showToast(text, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
-                    createDefaultResponseListener());
+                    responseListenerObject);
 
         }
     }
@@ -82,7 +92,7 @@ public class ConnectSDKAction implements ActionService {
             @ParamDoc(name = "url") final String url) {
         Launcher control = getControl(Launcher.class, deviceId);
         if (control != null) {
-            control.launchBrowser(url, createDefaultResponseListener());
+            control.launchBrowser(url, responseListenerLaunchSession);
         }
     }
 
@@ -91,7 +101,7 @@ public class ConnectSDKAction implements ActionService {
             @ParamDoc(name = "appId") final String appId) {
         Launcher control = getControl(Launcher.class, deviceId);
         if (control != null) {
-            control.launchApp(appId, createDefaultResponseListener());
+            control.launchApp(appId, responseListenerLaunchSession);
         }
     }
 
@@ -103,7 +113,7 @@ public class ConnectSDKAction implements ActionService {
             control.getAppList(new Launcher.AppListListener() {
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.error("error requesting application list: {}.", error.getMessage());
+                    logger.warn("error requesting application list: {}.", error.getMessage());
                 }
 
                 @Override
@@ -115,7 +125,7 @@ public class ConnectSDKAction implements ActionService {
                                 return a.getId().equals(appId);
                             };
                         });
-                        control.launchAppWithInfo(appInfo, param, createDefaultResponseListener());
+                        control.launchAppWithInfo(appInfo, param, responseListenerLaunchSession);
                     } catch (NoSuchElementException ex) {
                         logger.warn("TV does not support any app with id: {}.", appId);
                     }
@@ -134,11 +144,11 @@ public class ConnectSDKAction implements ActionService {
         control.getAppList(new Launcher.AppListListener() {
             @Override
             public void onError(ServiceCommandError error) {
-                logger.error(error.getMessage());
+                logger.warn(error.getMessage());
                 try {
                     result.put(Collections.emptyList());
                 } catch (InterruptedException e) {
-                    logger.error("interruppted", e);
+                    logger.warn("interruppted", e);
                 }
             }
 
@@ -157,14 +167,14 @@ public class ConnectSDKAction implements ActionService {
                         }
                     }).collect(Collectors.toList()));
                 } catch (InterruptedException e) {
-                    logger.error("interruppted", e);
+                    logger.warn("interruppted", e);
                 }
             }
         });
         try {
             return result.take();
         } catch (InterruptedException e) {
-            logger.error("interruppted", e);
+            logger.warn("interruppted", e);
             return Collections.emptyList();
         }
 
@@ -199,12 +209,12 @@ public class ConnectSDKAction implements ActionService {
     private static <C extends CapabilityMethods> C getControl(Class<C> clazz, String deviceId) {
         final ConnectableDevice d = discovery.getDiscoveryManager().getCompatibleDevices().get(deviceId);
         if (d == null) {
-            logger.error("No device found with id: {}", deviceId);
+            logger.warn("No device found with id: {}", deviceId);
             return null;
         }
         C control = d.getCapability(clazz);
         if (control == null) {
-            logger.error("Device {} does not have the ability: {}", deviceId, clazz.getName());
+            logger.warn("Device {} does not have the ability: {}", deviceId, clazz.getName());
             return null;
         }
         return control;
@@ -215,7 +225,7 @@ public class ConnectSDKAction implements ActionService {
 
             @Override
             public void onError(ServiceCommandError error) {
-                logger.error(error.getMessage());
+                logger.warn(error.getMessage());
             }
 
             @Override

@@ -60,6 +60,14 @@ WebOS TV has no configuration parameters. Please note that at least one channel 
 
 
 ## Actions
+
+Add the following Import line
+
+```
+import org.openhab.binding.connectsdk
+```
+
+
 ### Show Toast
 ```
 showToast(String ip, String text)
@@ -177,7 +185,6 @@ end
 rule "Player 0"
 when Item LG_TV0_Player received command
 then
-logInfo("Player2", receivedCommand.toString)
 switch receivedCommand {
     case NEXT: LG_TV0_Forward.send(ON)
     case PLAY: LG_TV0_Play.send(ON)

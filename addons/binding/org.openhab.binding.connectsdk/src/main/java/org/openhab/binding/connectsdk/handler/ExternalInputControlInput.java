@@ -42,7 +42,7 @@ public class ExternalInputControlInput extends AbstractChannelHandler<ExternalIn
             control.getExternalInputList(new ExternalInputListListener() {
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.error("error requesting external input list: {}.", error.getMessage());
+                    logger.warn("error requesting external input list: {}.", error.getMessage());
                 }
 
                 @Override

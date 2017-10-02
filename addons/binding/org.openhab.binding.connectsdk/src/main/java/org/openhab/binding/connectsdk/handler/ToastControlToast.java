@@ -51,7 +51,7 @@ public class ToastControlToast extends AbstractChannelHandler<Void> {
                 control.showToast(value, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
                         createDefaultResponseListener());
             } catch (IOException ex) {
-                logger.error(ex.getMessage(), ex);
+                logger.warn(ex.getMessage(), ex);
             }
         }
     }
