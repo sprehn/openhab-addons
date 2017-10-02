@@ -44,7 +44,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     private DiscoveryManager discoveryManager;
 
     // ChannelID to CommandHandler Map
-    private final Map<String, ChannelHandler> channelHandlers = ImmutableMap.<String, ChannelHandler>builder()
+    private final Map<String, ChannelHandler> channelHandlers = ImmutableMap.<String, ChannelHandler> builder()
             .put(CHANNEL_VOLUME, new VolumeControlVolume()).put(CHANNEL_VOLUME_UP, new VolumeControlUp())
             .put(CHANNEL_VOLUME_DOWN, new VolumeControlDown()).put(CHANNEL_POWER, new PowerControlPower())
             .put(CHANNEL_MUTE, new VolumeControlMute()).put(CHANNEL_CHANNEL, new TVControlChannel())
@@ -95,7 +95,6 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
                         "Will connect when at least one channel is linked.");
             }
         }
-
     }
 
     @Override
@@ -223,14 +222,12 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void onDeviceRemoved(DiscoveryManager manager, ConnectableDevice device) {
-        // Auto-generated method stub
-
+        // NOP
     }
 
     @Override
     public void onDiscoveryFailed(DiscoveryManager manager, ServiceCommandError error) {
-        // Auto-generated method stub
-
+        // NOP
     }
 
 }

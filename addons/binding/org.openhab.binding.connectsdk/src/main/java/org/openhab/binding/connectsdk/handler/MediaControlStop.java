@@ -28,7 +28,5 @@ public class MediaControlStop extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(MediaControl.Stop)) {
             getControl(d).stop(createDefaultResponseListener());
         }
-
     }
-
 }

@@ -25,11 +25,13 @@ The binding has only one configuration parameter, which is only required if the 
 | LocalIP |  This is the local IP of your OpenHAB host on the network. (Optional) |
 
 The binding will attempt to auto detect your IP, if LocalIP is not set. This works when your hostname resolves to this IP and not to the loopback interface or, if the system has exactly one non-loop back network interface. Otherwise this has to be explicitly set. If you are unable to discover devices please check the log file for error messages.e.g.: 
+
 ```
 Autodetection of local IP (via getNetworkInterfaces) failed, as multiple interfaces where detected.
 ```
 
 ## Discovery
+
 TVs are auto discovered through SSDP in the local network. The binding broadcast a search message via UDP on the network. 
 
 ## Thing Configuration
@@ -69,25 +71,31 @@ import org.openhab.binding.connectsdk
 
 
 ### Show Toast
+
 ```
 showToast(String ip, String text)
 ```
+
 Sends a toast message to a webOS device using OpenHAB's logo as an icon.
 The first parameter is the IP address of your TV. 
 The second parameter is the message you want to display.
 ### Show Toast with Custom Icon
+
 ```
 showToast(String ip, String icon, String text)
 ```
+
 Sends a toast message to a webOS device with custom icon. 
 The first parameter is the IP address of your TV. 
 The second parameter for the icon has to be provided as a URL. To use openhab's icon set you could send this URL for example: http://localhost:8080/icon/energy?state=UNDEF&format=png
 The third parameter is the message you want to display.
 
 ### Launch a URL
+
 ```
 launchBrowser(String ip, String url)
 ```
+
 Opens the given URL in the TV's browser app.
 
 The first parameter is the IP address of your TV. 
@@ -98,6 +106,7 @@ The second parameter is the URL you want to open.
 ```
 launchApplication(String deviceId, String appId)
 ```
+
 Opens the application with given appId. To find out what appId constant matches which app, bind the appLauncher channel to a String item and turn the TV to the desired application.
 
 The first parameter is the IP address of your TV. 
@@ -105,9 +114,11 @@ The second parameter is the application id that you want to open.
 
 
 ## Full Example
+
 This example assumes the IP of your smart TV is 192.168.2.119.
 
 demo.items:
+
 ```
 Switch LG_TV0_Power "TV Power" <television> { channel="connectsdk:WebOSTV:192_168_2_119:power" }
 Switch LG_TV0_Mute  "TV Mute" { channel="connectsdk:WebOSTV:192_168_2_119:mute"}
@@ -208,8 +219,8 @@ end
 
 
 Example of a toast message. 
+
 ```
 LG_TV0_Toast.sendCommand("Hello World")
 ```
-
 

@@ -26,7 +26,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @since 1.8.0
  */
 public class VolumeControlVolume extends AbstractChannelHandler<VolumeListener> {
-    private static final Logger logger = LoggerFactory.getLogger(VolumeControlVolume.class);
+    private Logger logger = LoggerFactory.getLogger(VolumeControlVolume.class);
 
     private VolumeControl getControl(final ConnectableDevice device) {
         return device.getCapability(VolumeControl.class);
@@ -46,11 +46,8 @@ public class VolumeControlVolume extends AbstractChannelHandler<VolumeListener> 
                 logger.warn("only accept precentType");
                 return;
             }
-
             getControl(d).setVolume(percent.floatValue() / 100.0f, createDefaultResponseListener());
-
         }
-
     }
 
     @Override
@@ -73,5 +70,4 @@ public class VolumeControlVolume extends AbstractChannelHandler<VolumeListener> 
             return null;
         }
     }
-
 }

@@ -22,7 +22,6 @@ import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.sessions.LaunchSession;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -30,7 +29,7 @@ import com.google.common.collect.Iterables;
  * @since 2.1.0
  */
 public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfoListener> {
-    private static final Logger logger = LoggerFactory.getLogger(LauncherApplication.class);
+    private final Logger logger = LoggerFactory.getLogger(LauncherApplication.class);
 
     private Launcher getControl(final ConnectableDevice device) {
         return device.getCapability(Launcher.class);
@@ -56,12 +55,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
                         }
                     }
                     try {
-                        AppInfo appInfo = Iterables.find(appInfos, new Predicate<AppInfo>() {
-                            @Override
-                            public boolean apply(AppInfo a) {
-                                return a.getId().equals(value);
-                            };
-                        });
+                        AppInfo appInfo = Iterables.find(appInfos, a -> a.getId().equals(value));
                         control.launchApp(appInfo.getId(),
                                 LauncherApplication.this.<LaunchSession> createDefaultResponseListener());
                     } catch (NoSuchElementException ex) {
@@ -92,5 +86,4 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
             return null;
         }
     }
-
 }

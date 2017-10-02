@@ -42,10 +42,9 @@ public class ConnectSDKHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
-        if (thingTypeUID.equals(THING_TYPE_WebOSTV)) {
+        if (thingTypeUID.equals(THING_TYPE_WEBOSTV)) {
             return new ConnectSDKHandler(thing, discovery.getDiscoveryManager());
         }
         return null;
     }
-
 }

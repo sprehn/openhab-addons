@@ -22,7 +22,6 @@ import com.connectsdk.service.capability.TVControl;
 import com.connectsdk.service.capability.TVControl.ChannelListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -30,7 +29,7 @@ import com.google.common.collect.Iterables;
  * @since 1.8.0
  */
 public class TVControlChannel extends AbstractChannelHandler<ChannelListener> {
-    private static final Logger logger = LoggerFactory.getLogger(TVControlChannel.class);
+    private Logger logger = LoggerFactory.getLogger(TVControlChannel.class);
 
     private TVControl getControl(final ConnectableDevice device) {
         return device.getCapability(TVControl.class);
@@ -55,22 +54,14 @@ public class TVControlChannel extends AbstractChannelHandler<ChannelListener> {
                         }
                     }
                     try {
-                        ChannelInfo channelInfo = Iterables.find(channels, new Predicate<ChannelInfo>() {
-                            @Override
-                            public boolean apply(ChannelInfo c) {
-                                return c.getNumber().equals(value);
-                            };
-                        });
+                        ChannelInfo channelInfo = Iterables.find(channels, c -> c.getNumber().equals(value));
                         control.setChannel(channelInfo, createDefaultResponseListener());
                     } catch (NoSuchElementException ex) {
                         logger.warn("TV does not have a channel: {}.", value);
                     }
-
                 }
             });
-
         }
-
     }
 
     @Override
@@ -86,14 +77,11 @@ public class TVControlChannel extends AbstractChannelHandler<ChannelListener> {
 
                 @Override
                 public void onSuccess(ChannelInfo channelInfo) {
-
                     handler.postUpdate(channelId, new StringType(channelInfo.getNumber()));
-
                 }
             });
         } else {
             return null;
         }
     }
-
 }

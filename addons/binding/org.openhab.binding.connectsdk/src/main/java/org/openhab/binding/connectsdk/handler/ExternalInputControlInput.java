@@ -20,7 +20,6 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.ExternalInputControl.ExternalInputListListener;
 import com.connectsdk.service.command.ServiceCommandError;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -28,7 +27,7 @@ import com.google.common.collect.Iterables;
  * @since 1.8.0
  */
 public class ExternalInputControlInput extends AbstractChannelHandler<ExternalInputListListener> {
-    private static final Logger logger = LoggerFactory.getLogger(ExternalInputControlInput.class);
+    private final Logger logger = LoggerFactory.getLogger(ExternalInputControlInput.class);
 
     private ExternalInputControl getControl(final ConnectableDevice device) {
         return device.getCapability(ExternalInputControl.class);
@@ -48,27 +47,18 @@ public class ExternalInputControlInput extends AbstractChannelHandler<ExternalIn
                 @Override
                 public void onSuccess(List<ExternalInputInfo> infos) {
                     if (logger.isDebugEnabled()) {
-                        for (ExternalInputInfo c : infos) {
-                            logger.debug("Input {} - {}", c.getId(), c.getName());
+                        for (ExternalInputInfo info : infos) {
+                            logger.debug("Input {} - {}", info.getId(), info.getName());
                         }
                     }
                     try {
-                        ExternalInputInfo channelInfo = Iterables.find(infos, new Predicate<ExternalInputInfo>() {
-                            @Override
-                            public boolean apply(ExternalInputInfo c) {
-                                return c.getId().equals(value);
-                            };
-                        });
+                        ExternalInputInfo channelInfo = Iterables.find(infos, info -> info.getId().equals(value));
                         control.setExternalInput(channelInfo, createDefaultResponseListener());
                     } catch (NoSuchElementException ex) {
                         logger.warn("Device does not have input: {}.", value);
                     }
-
                 }
             });
-
         }
-
     }
-
 }

@@ -28,7 +28,5 @@ public class VolumeControlDown extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
             getControl(d).volumeDown(createDefaultResponseListener());
         }
-
     }
-
 }

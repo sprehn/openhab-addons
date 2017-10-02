@@ -26,7 +26,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @since 1.8.0
  */
 public abstract class AbstractChannelHandler<T> implements ChannelHandler {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractChannelHandler.class);
+    private Logger logger = LoggerFactory.getLogger(AbstractChannelHandler.class);
 
     // IP to Subscriptions map
     private Map<String, ServiceSubscription<T>> subscriptions;
@@ -94,7 +94,6 @@ public abstract class AbstractChannelHandler<T> implements ChannelHandler {
             @Override
             public void onError(ServiceCommandError error) {
                 logger.warn("{}: {}.", this.getClass().getName(), error.getMessage());
-
             }
 
             @Override

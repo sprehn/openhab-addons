@@ -22,7 +22,7 @@ import com.connectsdk.service.capability.PowerControl;
  * @since 1.8.0
  */
 public class PowerControlPower extends AbstractChannelHandler<Void> {
-    private static final Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
+    private Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
 
     private PowerControl getControl(final ConnectableDevice device) {
         return device.getCapability(PowerControl.class);
@@ -46,7 +46,6 @@ public class PowerControlPower extends AbstractChannelHandler<Void> {
         if (OnOffType.OFF.equals(onOffType) && d.hasCapabilities(PowerControl.Off)) {
             getControl(d).powerOff(createDefaultResponseListener());
         }
-
     }
 
     @Override
@@ -60,5 +59,4 @@ public class PowerControlPower extends AbstractChannelHandler<Void> {
         super.onDeviceReady(device, channelId, handler);
         handler.postUpdate(channelId, OnOffType.OFF);
     }
-
 }

@@ -27,7 +27,7 @@ import com.connectsdk.service.capability.ToastControl;
  * @since 1.8.0
  */
 public class ToastControlToast extends AbstractChannelHandler<Void> {
-    private static final Logger logger = LoggerFactory.getLogger(ToastControlToast.class);
+    private Logger logger = LoggerFactory.getLogger(ToastControlToast.class);
 
     private ToastControl getControl(final ConnectableDevice device) {
         return device.getCapability(ToastControl.class);
@@ -51,9 +51,8 @@ public class ToastControlToast extends AbstractChannelHandler<Void> {
                 control.showToast(value, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
                         createDefaultResponseListener());
             } catch (IOException ex) {
-                logger.warn(ex.getMessage(), ex);
+                logger.warn("Failed to load toast icon: {}", ex.getMessage());
             }
         }
     }
-
 }

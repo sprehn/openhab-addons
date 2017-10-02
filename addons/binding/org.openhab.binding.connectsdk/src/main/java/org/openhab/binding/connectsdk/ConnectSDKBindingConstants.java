@@ -25,29 +25,29 @@ public class ConnectSDKBindingConstants {
     public static final String BINDING_ID = "connectsdk";
 
     // List of all Thing Type UIDs
-    public final static ThingTypeUID THING_TYPE_WebOSTV = new ThingTypeUID(BINDING_ID, "WebOSTV");
+    public static final ThingTypeUID THING_TYPE_WEBOSTV = new ThingTypeUID(BINDING_ID, "WebOSTV");
 
-    public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = ImmutableSet.of(THING_TYPE_WebOSTV);
+    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = ImmutableSet.of(THING_TYPE_WEBOSTV);
 
     // List of all Channel ids
-    public final static String CHANNEL_VOLUME = "volume";
-    public final static String CHANNEL_POWER = "power";
-    public final static String CHANNEL_MUTE = "mute";
-    public final static String CHANNEL_CHANNEL = "channel";
-    public final static String CHANNEL_TOAST = "toast";
-    public final static String CHANNEL_VOLUME_UP = "volumeUp";
-    public final static String CHANNEL_VOLUME_DOWN = "volumeDown";
-    public final static String CHANNEL_CHANNEL_UP = "channelUp";
-    public final static String CHANNEL_CHANNEL_DOWN = "channelDown";
-    public final static String CHANNEL_CHANNEL_NAME = "channelName";
-    public final static String CHANNEL_PROGRAM = "program";
-    public final static String CHANNEL_EXT_INPUT = "externalInput";
-    public final static String CHANNEL_MEDIA_FORWARD = "mediaForward";
-    public final static String CHANNEL_MEDIA_PAUSE = "mediaPause";
-    public final static String CHANNEL_MEDIA_PLAY = "mediaPlay";
-    public final static String CHANNEL_MEDIA_REWIND = "mediaRewind";
-    public final static String CHANNEL_MEDIA_STOP = "mediaStop";
-    public final static String CHANNEL_MEDIA_STATE = "mediaState";
-    public final static String CHANNEL_APP_LAUCHER = "appLauncher";
-    public final static String PROPERTY_IP_ADDRESS = "IP";
+    public static final String CHANNEL_VOLUME = "volume";
+    public static final String CHANNEL_POWER = "power";
+    public static final String CHANNEL_MUTE = "mute";
+    public static final String CHANNEL_CHANNEL = "channel";
+    public static final String CHANNEL_TOAST = "toast";
+    public static final String CHANNEL_VOLUME_UP = "volumeUp";
+    public static final String CHANNEL_VOLUME_DOWN = "volumeDown";
+    public static final String CHANNEL_CHANNEL_UP = "channelUp";
+    public static final String CHANNEL_CHANNEL_DOWN = "channelDown";
+    public static final String CHANNEL_CHANNEL_NAME = "channelName";
+    public static final String CHANNEL_PROGRAM = "program";
+    public static final String CHANNEL_EXT_INPUT = "externalInput";
+    public static final String CHANNEL_MEDIA_FORWARD = "mediaForward";
+    public static final String CHANNEL_MEDIA_PAUSE = "mediaPause";
+    public static final String CHANNEL_MEDIA_PLAY = "mediaPlay";
+    public static final String CHANNEL_MEDIA_REWIND = "mediaRewind";
+    public static final String CHANNEL_MEDIA_STOP = "mediaStop";
+    public static final String CHANNEL_MEDIA_STATE = "mediaState";
+    public static final String CHANNEL_APP_LAUCHER = "appLauncher";
+    public static final String PROPERTY_IP_ADDRESS = "IP";
 }

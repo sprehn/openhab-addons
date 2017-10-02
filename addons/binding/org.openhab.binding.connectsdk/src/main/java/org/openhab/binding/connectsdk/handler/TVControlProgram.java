@@ -25,7 +25,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @since 1.8.0
  */
 public class TVControlProgram extends AbstractChannelHandler<ProgramInfoListener> {
-    private static final Logger logger = LoggerFactory.getLogger(TVControlProgram.class);
+    private Logger logger = LoggerFactory.getLogger(TVControlProgram.class);
 
     private TVControl getControl(final ConnectableDevice device) {
         return device.getCapability(TVControl.class);
@@ -50,7 +50,6 @@ public class TVControlProgram extends AbstractChannelHandler<ProgramInfoListener
                 @Override
                 public void onSuccess(ProgramInfo programInfo) {
                     handler.postUpdate(channelId, new StringType(programInfo.getName()));
-
                 }
             });
         } else {

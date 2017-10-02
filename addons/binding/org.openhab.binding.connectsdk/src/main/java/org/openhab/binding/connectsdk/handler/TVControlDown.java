@@ -28,7 +28,5 @@ public class TVControlDown extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(TVControl.Channel_Down)) {
             getControl(d).channelDown(createDefaultResponseListener());
         }
-
     }
-
 }

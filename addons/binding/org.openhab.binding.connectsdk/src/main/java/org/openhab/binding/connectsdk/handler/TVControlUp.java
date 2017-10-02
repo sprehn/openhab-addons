@@ -28,7 +28,5 @@ public class TVControlUp extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(TVControl.Channel_Up)) {
             getControl(d).channelUp(createDefaultResponseListener());
         }
-
     }
-
 }

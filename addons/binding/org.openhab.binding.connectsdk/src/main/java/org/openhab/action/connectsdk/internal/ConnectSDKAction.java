@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -39,11 +38,16 @@ import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.sessions.LaunchSession;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+/**
+ * This class provides a rules action to start applications and send toast messages.
+ *
+ * @author Sebastian Prehn
+ * @since 2.1.0
+ */
 public class ConnectSDKAction implements ActionService {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectSDKAction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectSDKAction.class);
 
     private static ConnectSDKDiscovery discovery;
     private static ResponseListener<LaunchSession> responseListenerLaunchSession = createDefaultResponseListener();
@@ -78,13 +82,11 @@ public class ConnectSDKAction implements ActionService {
             @ParamDoc(name = "icon") final String icon, @ParamDoc(name = "text") final String text) throws IOException {
         ToastControl control = getControl(ToastControl.class, deviceId);
         if (control != null) {
-
             BufferedImage bi = ImageIO.read(new URL(icon));
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             ImageIO.write(bi, "png", os);
             control.showToast(text, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
                     responseListenerObject);
-
         }
     }
 
@@ -114,21 +116,16 @@ public class ConnectSDKAction implements ActionService {
             control.getAppList(new Launcher.AppListListener() {
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.warn("error requesting application list: {}.", error.getMessage());
+                    LOGGER.warn("error requesting application list: {}.", error.getMessage());
                 }
 
                 @Override
                 public void onSuccess(List<AppInfo> appInfos) {
                     try {
-                        AppInfo appInfo = Iterables.find(appInfos, new Predicate<AppInfo>() {
-                            @Override
-                            public boolean apply(AppInfo a) {
-                                return a.getId().equals(appId);
-                            };
-                        });
+                        AppInfo appInfo = Iterables.find(appInfos, a -> a.getId().equals(appId));
                         control.launchAppWithInfo(appInfo, param, responseListenerLaunchSession);
                     } catch (NoSuchElementException ex) {
-                        logger.warn("TV does not support any app with id: {}.", appId);
+                        LOGGER.warn("TV does not support any app with id: {}.", appId);
                     }
                 }
             });
@@ -145,45 +142,40 @@ public class ConnectSDKAction implements ActionService {
         control.getAppList(new Launcher.AppListListener() {
             @Override
             public void onError(ServiceCommandError error) {
-                logger.warn(error.getMessage());
+                LOGGER.warn("Error {}", error.getMessage());
                 try {
                     result.put(Collections.emptyList());
                 } catch (InterruptedException e) {
-                    logger.warn("interruppted", e);
+                    LOGGER.warn("interruppted", e);
                 }
             }
 
             @Override
             public void onSuccess(List<AppInfo> appInfos) {
-                if (logger.isDebugEnabled()) {
+                if (LOGGER.isDebugEnabled()) {
                     for (AppInfo a : appInfos) {
-                        logger.debug("AppInfo {} - {}", a.getId(), a.getName());
+                        LOGGER.debug("AppInfo {} - {}", a.getId(), a.getName());
                     }
                 }
                 try {
-                    result.put(appInfos.stream().map(new Function<AppInfo, String>() {
-                        @Override
-                        public String apply(AppInfo appInfo) {
-                            return String.format("%s - %s", appInfo.getId(), appInfo.getName());
-                        }
-                    }).collect(Collectors.toList()));
+                    result.put(appInfos.stream()
+                            .map((appInfo) -> String.format("%s - %s", appInfo.getId(), appInfo.getName()))
+                            .collect(Collectors.toList()));
                 } catch (InterruptedException e) {
-                    logger.warn("interruppted", e);
+                    LOGGER.warn("interruppted", e);
                 }
             }
         });
         try {
             return result.take();
         } catch (InterruptedException e) {
-            logger.warn("interruppted", e);
+            LOGGER.warn("interruppted", e);
             return Collections.emptyList();
         }
-
     }
 
     @ActionDoc(text = "sends a text input to a web os device")
     public static void sendText(@ParamDoc(name = "deviceId") String deviceId,
-
             @ParamDoc(name = "text") final String text) {
         TextInputControl control = getControl(TextInputControl.class, deviceId);
         if (control != null) {
@@ -210,12 +202,12 @@ public class ConnectSDKAction implements ActionService {
     private static <C extends CapabilityMethods> C getControl(Class<C> clazz, String deviceId) {
         final ConnectableDevice d = discovery.getDiscoveryManager().getCompatibleDevices().get(deviceId);
         if (d == null) {
-            logger.warn("No device found with id: {}", deviceId);
+            LOGGER.warn("No device found with id: {}", deviceId);
             return null;
         }
         C control = d.getCapability(clazz);
         if (control == null) {
-            logger.warn("Device {} does not have the ability: {}", deviceId, clazz.getName());
+            LOGGER.warn("Device {} does not have the ability: {}", deviceId, clazz.getName());
             return null;
         }
         return control;
@@ -226,12 +218,12 @@ public class ConnectSDKAction implements ActionService {
 
             @Override
             public void onError(ServiceCommandError error) {
-                logger.warn(error.getMessage());
+                LOGGER.warn("Response: {}", error.getMessage());
             }
 
             @Override
             public void onSuccess(O object) {
-                logger.debug(object == null ? "OK" : object.toString());
+                LOGGER.debug("Response: {}", object == null ? "OK" : object.toString());
             }
         };
     }

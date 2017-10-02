@@ -28,7 +28,5 @@ public class MediaControlPlay extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(MediaControl.Play)) {
             getControl(d).play(createDefaultResponseListener());
         }
-
     }
-
 }

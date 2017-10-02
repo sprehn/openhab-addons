@@ -36,8 +36,14 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.command.ServiceCommandError;
 
+/**
+ * This class provides the bridges between openhab thing discovery and connect sdk device discovery.
+ *
+ * @author Sebastian Prehn
+ * @since 1.8.0
+ */
 public class ConnectSDKDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectSDKDiscovery.class);
+    private Logger logger = LoggerFactory.getLogger(ConnectSDKDiscovery.class);
 
     private DiscoveryManager discoveryManager;
 
@@ -50,7 +56,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
 
     @Override
     protected void activate(Map<String, Object> configProperties) {
-        logger.info(configProperties.toString());
+        logger.info("Config Parameters: {}", configProperties);
         localInetAddresses = findLocalInetAddresses((String) configProperties.get("localIP"));
         Util.init(AbstractDiscoveryService.scheduler);
         discoveryManager = DiscoveryManager.getInstance();
@@ -111,7 +117,6 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
     @Override
     public void onDiscoveryFailed(DiscoveryManager manager, ServiceCommandError error) {
         logger.warn("Discovery Failed {}", error.getMessage());
-
     }
 
     // Helpers for DiscoveryManagerListener Impl
@@ -123,7 +128,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
     }
 
     private ThingUID createThingUID(ConnectableDevice device) {
-        return new ThingUID(THING_TYPE_WebOSTV, device.getIpAddress().replace('.', '_'));
+        return new ThingUID(THING_TYPE_WEBOSTV, device.getIpAddress().replace('.', '_'));
     }
 
     public DiscoveryManager getDiscoveryManager() {
@@ -161,7 +166,6 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
      * @return local ip or <code>null</code> if detection was not possible.
      */
     private InetAddress findLocalInetAddresses(String localIP) {
-
         // evaluate optional localIP parameter, can be configured through config admin (connectsdk.cfg)
         if (localIP != null && !localIP.trim().isEmpty()) {
             try {

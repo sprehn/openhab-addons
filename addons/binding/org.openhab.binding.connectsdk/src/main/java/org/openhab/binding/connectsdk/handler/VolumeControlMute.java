@@ -25,7 +25,7 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @since 1.8.0
  */
 public class VolumeControlMute extends AbstractChannelHandler<MuteListener> {
-    private static final Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
+    private Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
 
     private VolumeControl getControl(final ConnectableDevice device) {
         return device.getCapability(VolumeControl.class);
@@ -43,11 +43,8 @@ public class VolumeControlMute extends AbstractChannelHandler<MuteListener> {
                 logger.warn("only accept OnOffType");
                 return;
             }
-
             getControl(d).setMute(OnOffType.ON.equals(onOffType), createDefaultResponseListener());
-
         }
-
     }
 
     @Override
@@ -64,13 +61,10 @@ public class VolumeControlMute extends AbstractChannelHandler<MuteListener> {
                 @Override
                 public void onSuccess(Boolean value) {
                     handler.postUpdate(channelId, value ? OnOffType.ON : OnOffType.OFF);
-
                 }
             });
         } else {
             return null;
         }
-
     }
-
 }

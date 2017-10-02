@@ -20,14 +20,12 @@ import com.connectsdk.service.capability.MediaControl.PlayStateStatus;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
-// TODO: somehow this does not work with LG 60UF7709 spotify app or netflix
-
 /**
  * @author Sebastian Prehn
  * @since 1.8.0
  */
 public class MediaControlPlayState extends AbstractChannelHandler<PlayStateListener> {
-    private static final Logger logger = LoggerFactory.getLogger(MediaControlPlayState.class);
+    private Logger logger = LoggerFactory.getLogger(MediaControlPlayState.class);
 
     private MediaControl getControl(final ConnectableDevice device) {
         return device.getCapability(MediaControl.class);
@@ -35,7 +33,7 @@ public class MediaControlPlayState extends AbstractChannelHandler<PlayStateListe
 
     @Override
     public void onReceiveCommand(final ConnectableDevice d, Command command) {
-
+        // nothing to do, this is read only.
     }
 
     @Override
@@ -58,5 +56,4 @@ public class MediaControlPlayState extends AbstractChannelHandler<PlayStateListe
             return null;
         }
     }
-
 }

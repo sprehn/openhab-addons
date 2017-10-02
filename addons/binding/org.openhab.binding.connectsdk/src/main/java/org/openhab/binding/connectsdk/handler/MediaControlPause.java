@@ -28,7 +28,5 @@ public class MediaControlPause extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(MediaControl.Pause)) {
             getControl(d).pause(createDefaultResponseListener());
         }
-
     }
-
 }

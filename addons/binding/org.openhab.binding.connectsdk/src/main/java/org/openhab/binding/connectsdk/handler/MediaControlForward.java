@@ -28,7 +28,5 @@ public class MediaControlForward extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(MediaControl.FastForward)) {
             getControl(d).fastForward(createDefaultResponseListener());
         }
-
     }
-
 }

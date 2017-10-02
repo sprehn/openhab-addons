@@ -28,7 +28,5 @@ public class MediaControlRewind extends AbstractChannelHandler<Void> {
         if (d.hasCapabilities(MediaControl.Rewind)) {
             getControl(d).rewind(createDefaultResponseListener());
         }
-
     }
-
 }
