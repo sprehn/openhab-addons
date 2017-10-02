@@ -160,7 +160,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
                 logger.debug("localIP parameter explicitly set to: {}", localIP);
                 return InetAddress.getByName(localIP.trim());
             } catch (UnknownHostException e) {
-                logger.error("localIP config parameter could not be parsed: {}", localIP);
+                logger.warn("localIP config parameter could not be parsed: {}", localIP);
             }
         }
 
@@ -172,7 +172,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
                 return inetAddress;
             }
         } catch (UnknownHostException ex) {
-            logger.error("Unable to resolve your hostname", ex);
+            logger.warn("Unable to resolve your hostname", ex);
         }
 
         // try to find the single non-loop back interface available
@@ -193,12 +193,12 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
                 logger.debug("Autodetected (via getNetworkInterfaces) local IP: {}", interfaces.get(0));
                 return interfaces.get(0);
             } else {
-                logger.error(
+                logger.warn(
                         "Autodetection of local IP (via getNetworkInterfaces) failed, as multiple interfaces where detected: {}",
                         interfaces);
             }
         } catch (SocketException e) {
-            logger.error("Failed to detect network interfaces and addresses", e);
+            logger.warn("Failed to detect network interfaces and addresses", e);
         }
 
         return null;

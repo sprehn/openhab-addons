@@ -14,22 +14,20 @@ import com.connectsdk.device.ConnectableDevice;
 
 /**
  * Channel Handler mediates between connect sdk device state changes and openhab channel events.
- * 
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */
 public interface ChannelHandler {
 
-    public abstract void onReceiveCommand(ConnectableDevice device, Command command);
+    void onReceiveCommand(ConnectableDevice device, Command command);
 
-    public abstract void refreshSubscription(ConnectableDevice device, String channelId, ConnectSDKHandler handler);
+    void refreshSubscription(ConnectableDevice device, String channelId, ConnectSDKHandler handler);
 
-    public abstract void removeAnySubscription(ConnectableDevice device);
+    void removeAnySubscription(ConnectableDevice device);
 
-    public abstract void onDeviceRemoved(final ConnectableDevice device, final String channelId,
-            final ConnectSDKHandler handler);
+    void onDeviceRemoved(final ConnectableDevice device, final String channelId, final ConnectSDKHandler handler);
 
-    public abstract void onDeviceReady(final ConnectableDevice device, final String channelId,
-            final ConnectSDKHandler handler);
+    void onDeviceReady(final ConnectableDevice device, final String channelId, final ConnectSDKHandler handler);
 
 }

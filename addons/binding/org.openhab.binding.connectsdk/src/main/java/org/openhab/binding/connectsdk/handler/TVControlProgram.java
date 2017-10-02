@@ -44,7 +44,7 @@ public class TVControlProgram extends AbstractChannelHandler<ProgramInfoListener
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.warn("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override

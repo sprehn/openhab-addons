@@ -45,7 +45,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.error("error requesting application list: {}.", error.getMessage());
+                    logger.warn("error requesting application list: {}.", error.getMessage());
                 }
 
                 @Override
@@ -63,7 +63,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
                             };
                         });
                         control.launchApp(appInfo.getId(),
-                                LauncherApplication.this.<LaunchSession>createDefaultResponseListener());
+                                LauncherApplication.this.<LaunchSession> createDefaultResponseListener());
                     } catch (NoSuchElementException ex) {
                         logger.warn("TV does not support any app with id: {}.", value);
                     }
@@ -80,7 +80,7 @@ public class LauncherApplication extends AbstractChannelHandler<Launcher.AppInfo
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    logger.error("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
+                    logger.warn("{} {} {}", error.getCode(), error.getPayload(), error.getMessage());
                 }
 
                 @Override
