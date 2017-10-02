@@ -158,9 +158,10 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void channelLinked(ChannelUID channelUID) {
-        if (getDevice() != null) {
-            if (!getDevice().isConnected()) {
-                getDevice().connect();
+        final ConnectableDevice device = getDevice();
+        if (device != null) {
+            if (!device.isConnected()) {
+                device.connect();
             } else {
                 refreshChannelSubscription(channelUID);
             }
@@ -170,8 +171,9 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     @Override
     public void channelUnlinked(ChannelUID channelUID) {
         refreshChannelSubscription(channelUID);
-        if (!isAnyChannelLinked() && getDevice().isConnected()) {
-            getDevice().disconnect();
+        final ConnectableDevice device = getDevice();
+        if (!isAnyChannelLinked() && device != null && device.isConnected()) {
+            device.disconnect();
         }
     }
 
