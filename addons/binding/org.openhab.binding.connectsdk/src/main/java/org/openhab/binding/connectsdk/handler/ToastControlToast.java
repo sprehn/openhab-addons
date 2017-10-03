@@ -11,9 +11,10 @@ package org.openhab.binding.connectsdk.handler;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Base64;
 
 import javax.imageio.ImageIO;
-import javax.xml.bind.DatatypeConverter;
 
 import org.eclipse.smarthome.core.types.Command;
 import org.slf4j.Logger;
@@ -23,6 +24,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.ToastControl;
 
 /**
+ * Handles Toast Control Command. This allows to send messages to the TV screen.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */
@@ -41,15 +44,9 @@ public class ToastControlToast extends BaseChannelHandler<Void> {
             try {
                 BufferedImage bi = ImageIO.read(getClass().getResource("/openhab-logo-square.png"));
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-                // only in java 1.8
-                // OutputStream b64 = Base64.getEncoder().wrap(os);
-                // ImageIO.write(bi, "png", b64);
-                // control.showToast(value, os.toString("UTF-8"), "png", createDefaultResponseListener() );
-
-                ImageIO.write(bi, "png", os);
-                control.showToast(value, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
-                        createDefaultResponseListener());
+                OutputStream b64 = Base64.getEncoder().wrap(os);
+                ImageIO.write(bi, "png", b64);
+                control.showToast(value, os.toString("UTF-8"), "png", createDefaultResponseListener());
             } catch (IOException ex) {
                 logger.warn("Failed to load toast icon: {}", ex.getMessage());
             }

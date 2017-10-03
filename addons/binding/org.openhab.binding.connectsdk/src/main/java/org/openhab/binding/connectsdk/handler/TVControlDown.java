@@ -14,6 +14,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.TVControl;
 
 /**
+ * Handles TV Control Channel Down Command.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

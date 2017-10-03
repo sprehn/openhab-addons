@@ -14,6 +14,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.VolumeControl;
 
 /**
+ * Handles TV Control Volume Up Command. Relative increase volume.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

@@ -64,10 +64,17 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("internalReceiveCommand({},{}) is called", channelUID, command);
         ChannelHandler handler = channelHandlers.get(channelUID.getId());
+        if (handler == null) {
+            logger.warn(
+                    "Unable to handle command {}. No handler found for channel {}. This must not happen. Please report as a bug.",
+                    command, channelUID);
+            return;
+        }
         final ConnectableDevice device = getDevice();
         if (device == null) {
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                    String.format("%s not found under connect sdk devices", getThing().getUID()));
+            logger.warn(
+                    "Unable to handle command {} for channel {}. Device {} not found. This should not happen at this point.",
+                    command, channelUID, getThing().getUID());
             return;
         }
         handler.onReceiveCommand(device, command);
@@ -86,12 +93,11 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
         if (device == null) {// If TV is off getDevice() will return null
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
         } else {
+            updateStatus(ThingStatus.ONLINE, ThingStatusDetail.CONFIGURATION_PENDING,
+                    "Device Ready. Currently not connected. Will connect when at least one channel is linked.");
             device.addListener(this);
             if (isAnyChannelLinked()) {
-                device.connect(); // if successful onDeviceReady will set online state
-            } else {
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_PENDING,
-                        "Will connect when at least one channel is linked.");
+                device.connect();
             }
         }
     }
@@ -110,11 +116,9 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     @Override
     public void onDeviceReady(ConnectableDevice device) { // this gets called on connection success
-        updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Device Ready");
+        updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Connected");
         refreshAllChannelSubscriptions(device);
-        for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
-            e.getValue().onDeviceReady(device, e.getKey(), this);
-        }
+        channelHandlers.entrySet().forEach(e -> e.getValue().onDeviceReady(device, e.getKey(), this));
     }
 
     @Override
@@ -178,6 +182,11 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
     // private helpers
 
+    /**
+     * Refresh channel subscription for one specific channel.
+     *
+     * @param channelUID must not be <code>null</code>
+     */
     private void refreshChannelSubscription(ChannelUID channelUID) {
         String channelId = channelUID.getId();
         ChannelHandler handler = channelHandlers.get(channelId);
@@ -186,19 +195,17 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
         }
     }
 
+    /**
+     * Refresh channel subscriptions on all handlers.
+     *
+     * @param device must not be <code>null</code>
+     */
     private void refreshAllChannelSubscriptions(ConnectableDevice device) {
-        for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
-            e.getValue().refreshSubscription(device, e.getKey(), this);
-        }
+        channelHandlers.entrySet().forEach(e -> e.getValue().refreshSubscription(device, e.getKey(), this));
     }
 
     private boolean isAnyChannelLinked() {
-        for (String channelId : channelHandlers.keySet()) {
-            if (this.isLinked(channelId)) {
-                return true;
-            }
-        }
-        return false;
+        return channelHandlers.keySet().stream().anyMatch(channelId -> isLinked(channelId));
     }
 
     // just to make sure, this device is registered, if it was powered off during initialization

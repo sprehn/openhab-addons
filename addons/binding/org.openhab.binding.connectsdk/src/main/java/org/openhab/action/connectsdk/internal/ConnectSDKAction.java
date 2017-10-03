@@ -11,7 +11,9 @@ package org.openhab.action.connectsdk.internal;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -20,7 +22,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
-import javax.xml.bind.DatatypeConverter;
 
 import org.eclipse.smarthome.model.script.engine.action.ActionDoc;
 import org.eclipse.smarthome.model.script.engine.action.ActionService;
@@ -84,9 +85,9 @@ public class ConnectSDKAction implements ActionService {
         if (control != null) {
             BufferedImage bi = ImageIO.read(new URL(icon));
             ByteArrayOutputStream os = new ByteArrayOutputStream();
-            ImageIO.write(bi, "png", os);
-            control.showToast(text, DatatypeConverter.printBase64Binary(os.toByteArray()), "png",
-                    responseListenerObject);
+            OutputStream b64 = Base64.getEncoder().wrap(os);
+            ImageIO.write(bi, "png", b64);
+            control.showToast(text, os.toString("UTF-8"), "png", responseListenerObject);
         }
     }
 

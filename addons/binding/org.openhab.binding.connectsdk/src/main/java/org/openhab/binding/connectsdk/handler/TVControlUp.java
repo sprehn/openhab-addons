@@ -14,6 +14,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.TVControl;
 
 /**
+ * Handles TV Control Channel Up Command. Relative increase channel.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

@@ -25,6 +25,8 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.google.common.collect.Iterables;
 
 /**
+ * Provides ability to launch an application on the TV.
+ *
  * @author Sebastian Prehn
  * @since 2.1.0
  */

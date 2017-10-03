@@ -23,6 +23,8 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.google.common.collect.Iterables;
 
 /**
+ * Handles external Input Control, such as HDMI etc.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

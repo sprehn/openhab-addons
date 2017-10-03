@@ -14,6 +14,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.VolumeControl;
 
 /**
+ * Handles TV Control Volume Down Command. Relative decrease volume.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

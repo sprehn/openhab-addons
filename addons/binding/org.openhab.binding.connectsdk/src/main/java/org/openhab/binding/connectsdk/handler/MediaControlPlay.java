@@ -14,6 +14,8 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.MediaControl;
 
 /**
+ * Handles Media Control Command Play.
+ * 
  * @author Sebastian Prehn
  * @since 1.8.0
  */

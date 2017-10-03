@@ -18,6 +18,9 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.PowerControl;
 
 /**
+ * Handles Power Control Command.
+ * Note: Connect SDK only supports powering OFF for most devices.
+ * 
  * @author Sebastian Prehn
  * @since 1.8.0
  */

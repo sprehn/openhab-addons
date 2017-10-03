@@ -54,7 +54,7 @@ abstract class BaseChannelHandler<T> implements ChannelHandler {
     public final synchronized void refreshSubscription(final ConnectableDevice device, final String channelId,
             final ConnectSDKHandler handler) {
         removeAnySubscription(device);
-        if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured
+        if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured for this channel
             ServiceSubscription<T> listener = getSubscription(device, channelId, handler);
             if (listener != null) {
                 logger.debug("Subscribed {} on IP: {}", this.getClass().getName(), device.getIpAddress());

@@ -22,6 +22,8 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
 /**
+ * Handles TV Control Volume Command. Allows to set a volume to an absolute number.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

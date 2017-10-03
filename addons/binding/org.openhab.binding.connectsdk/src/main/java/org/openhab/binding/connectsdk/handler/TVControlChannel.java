@@ -25,6 +25,9 @@ import com.connectsdk.service.command.ServiceSubscription;
 import com.google.common.collect.Iterables;
 
 /**
+ * Handles TV Control Channel Command.
+ * Allows to set a channel to an absolute channel number.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

@@ -21,6 +21,9 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
 /**
+ * Handles TV Control Channel State. This is read only.
+ * Subscribes to to current channel name.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */

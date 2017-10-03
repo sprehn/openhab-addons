@@ -21,6 +21,9 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
 /**
+ * Handles Media Control State PlayState. This is read only.
+ * Subscribes to the current play state.
+ *
  * @author Sebastian Prehn
  * @since 1.8.0
  */
