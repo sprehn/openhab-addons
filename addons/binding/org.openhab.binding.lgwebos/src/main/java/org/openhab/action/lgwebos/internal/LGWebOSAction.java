@@ -27,6 +27,8 @@ import org.eclipse.smarthome.model.script.engine.action.ActionDoc;
 import org.eclipse.smarthome.model.script.engine.action.ActionService;
 import org.eclipse.smarthome.model.script.engine.action.ParamDoc;
 import org.openhab.binding.lgwebos.internal.discovery.LGWebOSDiscovery;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +49,7 @@ import com.google.common.collect.Iterables;
  * @author Sebastian Prehn
  * @since 2.1.0
  */
+@Component(service = ActionService.class, immediate = true, name = "action.lgwebos")
 public class LGWebOSAction implements ActionService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LGWebOSAction.class);
 
@@ -64,12 +67,13 @@ public class LGWebOSAction implements ActionService {
         return LGWebOSAction.class;
     }
 
+    @Reference
     protected void bindDiscovery(LGWebOSDiscovery discovery) {
         LGWebOSAction.discovery = discovery;
     }
 
     protected void unbindDiscovery(LGWebOSDiscovery discovery) {
-        discovery = null;
+        LGWebOSAction.discovery = null;
     }
 
     @ActionDoc(text = "sends a toast message to a web os device with openhab icon")

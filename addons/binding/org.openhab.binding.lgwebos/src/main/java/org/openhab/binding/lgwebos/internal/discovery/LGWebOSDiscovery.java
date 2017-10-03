@@ -24,8 +24,10 @@ import java.util.Map;
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.lgwebos.LGWebOSBindingConstants;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,7 @@ import com.connectsdk.service.command.ServiceCommandError;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
+@Component(service = { DiscoveryService.class, LGWebOSDiscovery.class }, immediate = true, name = "binding.lgwebos")
 public class LGWebOSDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
     private Logger logger = LoggerFactory.getLogger(LGWebOSDiscovery.class);
 
