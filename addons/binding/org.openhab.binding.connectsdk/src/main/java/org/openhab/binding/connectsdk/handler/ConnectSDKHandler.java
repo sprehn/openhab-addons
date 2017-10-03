@@ -84,8 +84,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
 
         ConnectableDevice device = getDevice();
         if (device == null) {// If TV is off getDevice() will return null
-            updateStatus(ThingStatus.OFFLINE);
-            return;
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
         } else {
             device.addListener(this);
             if (isAnyChannelLinked()) {
@@ -125,7 +124,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
             e.getValue().onDeviceRemoved(device, e.getKey(), this);
             e.getValue().removeAnySubscription(device);
         }
-        updateStatus(ThingStatus.OFFLINE);
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
     }
 
     @Override
