@@ -52,13 +52,13 @@ public class PowerControlPower extends BaseChannelHandler<Void> {
     }
 
     @Override
-    public void onDeviceReady(ConnectableDevice device, final String channelId, final ConnectSDKHandler handler) {
+    public void onDeviceReady(ConnectableDevice device, final String channelId, final LGWebOSHandler handler) {
         super.onDeviceReady(device, channelId, handler);
         handler.postUpdate(channelId, OnOffType.ON);
     }
 
     @Override
-    public void onDeviceRemoved(ConnectableDevice device, final String channelId, final ConnectSDKHandler handler) {
+    public void onDeviceRemoved(ConnectableDevice device, final String channelId, final LGWebOSHandler handler) {
         super.onDeviceReady(device, channelId, handler);
         handler.postUpdate(channelId, OnOffType.OFF);
     }

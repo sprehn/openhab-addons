@@ -8,7 +8,7 @@
  */
 package org.openhab.binding.lgwebos.handler;
 
-import static org.openhab.binding.lgwebos.ConnectSDKBindingConstants.*;
+import static org.openhab.binding.lgwebos.LGWebOSBindingConstants.*;
 
 import java.util.List;
 import java.util.Map;
@@ -33,14 +33,14 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * The {@link ConnectSDKHandler} is responsible for handling commands, which are
+ * The {@link LGWebOSHandler} is responsible for handling commands, which are
  * sent to one of the channels.
  *
  * @author Sebastian Prehn - Initial contribution
  */
-public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDeviceListener, DiscoveryManagerListener {
+public class LGWebOSHandler extends BaseThingHandler implements ConnectableDeviceListener, DiscoveryManagerListener {
 
-    private Logger logger = LoggerFactory.getLogger(ConnectSDKHandler.class);
+    private Logger logger = LoggerFactory.getLogger(LGWebOSHandler.class);
     private DiscoveryManager discoveryManager;
 
     // ChannelID to CommandHandler Map
@@ -55,7 +55,7 @@ public class ConnectSDKHandler extends BaseThingHandler implements ConnectableDe
             .put(CHANNEL_MEDIA_STOP, new MediaControlStop()).put(CHANNEL_MEDIA_STATE, new MediaControlPlayState())
             .put(CHANNEL_TOAST, new ToastControlToast()).build();
 
-    public ConnectSDKHandler(Thing thing, DiscoveryManager discoveryManager) {
+    public LGWebOSHandler(Thing thing, DiscoveryManager discoveryManager) {
         super(thing);
         this.discoveryManager = discoveryManager;
     }

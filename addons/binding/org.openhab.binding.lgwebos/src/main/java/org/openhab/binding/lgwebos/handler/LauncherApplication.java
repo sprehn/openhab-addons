@@ -70,7 +70,7 @@ public class LauncherApplication extends BaseChannelHandler<Launcher.AppInfoList
 
     @Override
     protected ServiceSubscription<Launcher.AppInfoListener> getSubscription(ConnectableDevice device,
-            final String channelId, final ConnectSDKHandler handler) {
+            final String channelId, final LGWebOSHandler handler) {
         if (device.hasCapability(Launcher.RunningApp_Subscribe)) {
             return getControl(device).subscribeRunningApp(new Launcher.AppInfoListener() {
 

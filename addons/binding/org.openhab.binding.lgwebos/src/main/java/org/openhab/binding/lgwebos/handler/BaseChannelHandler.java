@@ -40,19 +40,19 @@ abstract class BaseChannelHandler<T> implements ChannelHandler {
     }
 
     @Override
-    public void onDeviceReady(final ConnectableDevice device, final String channelId, final ConnectSDKHandler handler) {
+    public void onDeviceReady(final ConnectableDevice device, final String channelId, final LGWebOSHandler handler) {
         // NOP
     }
 
     @Override
     public void onDeviceRemoved(final ConnectableDevice device, final String channelId,
-            final ConnectSDKHandler handler) {
+            final LGWebOSHandler handler) {
         // NOP
     }
 
     @Override
     public final synchronized void refreshSubscription(final ConnectableDevice device, final String channelId,
-            final ConnectSDKHandler handler) {
+            final LGWebOSHandler handler) {
         removeAnySubscription(device);
         if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured for this channel
             ServiceSubscription<T> listener = getSubscription(device, channelId, handler);
@@ -73,7 +73,7 @@ abstract class BaseChannelHandler<T> implements ChannelHandler {
      * @return instance or <code>null</code> if no subscription is possible or required
      */
     protected ServiceSubscription<T> getSubscription(final ConnectableDevice device, final String channelId,
-            ConnectSDKHandler handler) {
+            LGWebOSHandler handler) {
         return null;
     }
 

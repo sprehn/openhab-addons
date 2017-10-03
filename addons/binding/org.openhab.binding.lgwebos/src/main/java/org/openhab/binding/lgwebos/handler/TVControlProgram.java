@@ -41,7 +41,7 @@ public class TVControlProgram extends BaseChannelHandler<ProgramInfoListener> {
 
     @Override
     protected ServiceSubscription<ProgramInfoListener> getSubscription(final ConnectableDevice device,
-            final String channelId, final ConnectSDKHandler handler) {
+            final String channelId, final LGWebOSHandler handler) {
         if (device.hasCapability(TVControl.Program_Subscribe)) {
             return getControl(device).subscribeProgramInfo(new ProgramInfoListener() {
 

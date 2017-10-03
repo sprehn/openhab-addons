@@ -54,7 +54,7 @@ public class VolumeControlVolume extends BaseChannelHandler<VolumeListener> {
 
     @Override
     protected ServiceSubscription<VolumeListener> getSubscription(final ConnectableDevice device,
-            final String channelUID, final ConnectSDKHandler handler) {
+            final String channelUID, final LGWebOSHandler handler) {
         if (device.hasCapability(VolumeControl.Volume_Subscribe)) {
             return getControl(device).subscribeVolume(new VolumeListener() {
 

@@ -41,7 +41,7 @@ public interface ChannelHandler {
      * @param channelId must not be <code>null</code>
      * @param handler must not be <code>null</code>
      */
-    void refreshSubscription(ConnectableDevice device, String channelId, ConnectSDKHandler handler);
+    void refreshSubscription(ConnectableDevice device, String channelId, LGWebOSHandler handler);
 
     /**
      * Removes subscriptions if there are any.
@@ -57,7 +57,7 @@ public interface ChannelHandler {
      * @param channelId
      * @param handler
      */
-    void onDeviceRemoved(final ConnectableDevice device, final String channelId, final ConnectSDKHandler handler);
+    void onDeviceRemoved(final ConnectableDevice device, final String channelId, final LGWebOSHandler handler);
 
     /**
      * Callback method whenever a device is discovered and ready to operate.
@@ -66,6 +66,6 @@ public interface ChannelHandler {
      * @param channelId must not be <code>null</code>
      * @param handler must not be <code>null</code>
      */
-    void onDeviceReady(final ConnectableDevice device, final String channelId, final ConnectSDKHandler handler);
+    void onDeviceReady(final ConnectableDevice device, final String channelId, final LGWebOSHandler handler);
 
 }

@@ -41,7 +41,7 @@ public class MediaControlPlayState extends BaseChannelHandler<PlayStateListener>
 
     @Override
     protected ServiceSubscription<PlayStateListener> getSubscription(final ConnectableDevice device,
-            final String channelId, final ConnectSDKHandler handler) {
+            final String channelId, final LGWebOSHandler handler) {
         if (device.hasCapability(MediaControl.PlayState_Subscribe)) {
             return getControl(device).subscribePlayState(new PlayStateListener() {
 

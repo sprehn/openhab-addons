@@ -8,7 +8,7 @@
  */
 package org.openhab.binding.lgwebos.internal.discovery;
 
-import static org.openhab.binding.lgwebos.ConnectSDKBindingConstants.*;
+import static org.openhab.binding.lgwebos.LGWebOSBindingConstants.*;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -25,7 +25,7 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
 import org.eclipse.smarthome.core.thing.ThingUID;
-import org.openhab.binding.lgwebos.ConnectSDKBindingConstants;
+import org.openhab.binding.lgwebos.LGWebOSBindingConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,15 +42,15 @@ import com.connectsdk.service.command.ServiceCommandError;
  * @author Sebastian Prehn
  * @since 1.8.0
  */
-public class ConnectSDKDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
-    private Logger logger = LoggerFactory.getLogger(ConnectSDKDiscovery.class);
+public class LGWebOSDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
+    private Logger logger = LoggerFactory.getLogger(LGWebOSDiscovery.class);
 
     private DiscoveryManager discoveryManager;
 
     private InetAddress localInetAddresses;
 
-    public ConnectSDKDiscovery() {
-        super(ConnectSDKBindingConstants.SUPPORTED_THING_TYPES_UIDS, 60, true);
+    public LGWebOSDiscovery() {
+        super(LGWebOSBindingConstants.SUPPORTED_THING_TYPES_UIDS, 60, true);
         DiscoveryManager.init(this);
     }
 
@@ -166,7 +166,7 @@ public class ConnectSDKDiscovery extends AbstractDiscoveryService implements Dis
      * @return local ip or <code>null</code> if detection was not possible.
      */
     private InetAddress findLocalInetAddresses(String localIP) {
-        // evaluate optional localIP parameter, can be configured through config admin (connectsdk.cfg)
+        // evaluate optional localIP parameter, can be configured through config admin (lgwebos.cfg)
         if (localIP != null && !localIP.trim().isEmpty()) {
             try {
                 logger.debug("localIP parameter explicitly set to: {}", localIP);

@@ -51,7 +51,7 @@ public class VolumeControlMute extends BaseChannelHandler<MuteListener> {
 
     @Override
     protected ServiceSubscription<MuteListener> getSubscription(final ConnectableDevice device, final String channelId,
-            final ConnectSDKHandler handler) {
+            final LGWebOSHandler handler) {
         if (device.hasCapability(VolumeControl.Mute_Subscribe)) {
             return getControl(device).subscribeMute(new MuteListener() {
 

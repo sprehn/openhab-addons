@@ -26,7 +26,7 @@ import javax.imageio.ImageIO;
 import org.eclipse.smarthome.model.script.engine.action.ActionDoc;
 import org.eclipse.smarthome.model.script.engine.action.ActionService;
 import org.eclipse.smarthome.model.script.engine.action.ParamDoc;
-import org.openhab.binding.lgwebos.internal.discovery.ConnectSDKDiscovery;
+import org.openhab.binding.lgwebos.internal.discovery.LGWebOSDiscovery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,10 +47,10 @@ import com.google.common.collect.Iterables;
  * @author Sebastian Prehn
  * @since 2.1.0
  */
-public class ConnectSDKAction implements ActionService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectSDKAction.class);
+public class LGWebOSAction implements ActionService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LGWebOSAction.class);
 
-    private static ConnectSDKDiscovery discovery;
+    private static LGWebOSDiscovery discovery;
     private static ResponseListener<LaunchSession> responseListenerLaunchSession = createDefaultResponseListener();
     private static ResponseListener<Object> responseListenerObject = createDefaultResponseListener();
 
@@ -61,21 +61,21 @@ public class ConnectSDKAction implements ActionService {
 
     @Override
     public Class<?> getActionClass() {
-        return ConnectSDKAction.class;
+        return LGWebOSAction.class;
     }
 
-    protected void bindDiscovery(ConnectSDKDiscovery discovery) {
-        ConnectSDKAction.discovery = discovery;
+    protected void bindDiscovery(LGWebOSDiscovery discovery) {
+        LGWebOSAction.discovery = discovery;
     }
 
-    protected void unbindDiscovery(ConnectSDKDiscovery discovery) {
+    protected void unbindDiscovery(LGWebOSDiscovery discovery) {
         discovery = null;
     }
 
     @ActionDoc(text = "sends a toast message to a web os device with openhab icon")
     public static void showToast(@ParamDoc(name = "deviceId") String deviceId,
             @ParamDoc(name = "text") final String text) throws IOException {
-        showToast(deviceId, ConnectSDKAction.class.getResource("/openhab-logo-square.png").toString(), text);
+        showToast(deviceId, LGWebOSAction.class.getResource("/openhab-logo-square.png").toString(), text);
     }
 
     @ActionDoc(text = "sends a toast message to a web os device with custom icon")

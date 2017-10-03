@@ -69,7 +69,7 @@ public class TVControlChannel extends BaseChannelHandler<ChannelListener> {
 
     @Override
     protected ServiceSubscription<ChannelListener> getSubscription(final ConnectableDevice device,
-            final String channelId, final ConnectSDKHandler handler) {
+            final String channelId, final LGWebOSHandler handler) {
         if (device.hasCapability(TVControl.Channel_Subscribe)) {
             return getControl(device).subscribeCurrentChannel(new ChannelListener() {
 

@@ -8,34 +8,34 @@
  */
 package org.openhab.binding.lgwebos.internal;
 
-import static org.openhab.binding.lgwebos.ConnectSDKBindingConstants.*;
+import static org.openhab.binding.lgwebos.LGWebOSBindingConstants.*;
 
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
-import org.openhab.binding.lgwebos.handler.ConnectSDKHandler;
-import org.openhab.binding.lgwebos.internal.discovery.ConnectSDKDiscovery;
+import org.openhab.binding.lgwebos.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.discovery.LGWebOSDiscovery;
 
 /**
- * The {@link ConnectSDKHandlerFactory} is responsible for creating things and thing
+ * The {@link LGWebOSHandlerFactory} is responsible for creating things and thing
  * handlers.
  *
  * @author Sebastian Prehn - Initial contribution
  */
-public class ConnectSDKHandlerFactory extends BaseThingHandlerFactory {
-    private ConnectSDKDiscovery discovery;
+public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
+    private LGWebOSDiscovery discovery;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
-    protected void bindDiscovery(ConnectSDKDiscovery discovery) {
+    protected void bindDiscovery(LGWebOSDiscovery discovery) {
         this.discovery = discovery;
     }
 
-    protected void unbindDiscovery(ConnectSDKDiscovery discovery) {
+    protected void unbindDiscovery(LGWebOSDiscovery discovery) {
         discovery = null;
     }
 
@@ -43,7 +43,7 @@ public class ConnectSDKHandlerFactory extends BaseThingHandlerFactory {
     protected ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         if (thingTypeUID.equals(THING_TYPE_WEBOSTV)) {
-            return new ConnectSDKHandler(thing, discovery.getDiscoveryManager());
+            return new LGWebOSHandler(thing, discovery.getDiscoveryManager());
         }
         return null;
     }

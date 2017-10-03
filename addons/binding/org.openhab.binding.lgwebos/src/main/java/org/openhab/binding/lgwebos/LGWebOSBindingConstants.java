@@ -15,14 +15,13 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * The {@link ConnectSDKBinding} class defines common constants, which are
- * used across the whole binding.
+ * This class defines common constants, which are used across the whole binding.
  *
  * @author Sebastian Prehn - Initial contribution
  */
-public class ConnectSDKBindingConstants {
+public class LGWebOSBindingConstants {
 
-    public static final String BINDING_ID = "connectsdk";
+    public static final String BINDING_ID = "lgwebos";
 
     // List of all Thing Type UIDs
     public static final ThingTypeUID THING_TYPE_WEBOSTV = new ThingTypeUID(BINDING_ID, "WebOSTV");
