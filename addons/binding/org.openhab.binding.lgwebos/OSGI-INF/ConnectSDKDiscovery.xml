@@ -10,9 +10,9 @@
 
 -->
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="binding.connectsdk">
-   <implementation class="org.openhab.binding.connectsdk.internal.discovery.ConnectSDKDiscovery"/>
+   <implementation class="org.openhab.binding.lgwebos.internal.discovery.ConnectSDKDiscovery"/>
    <service>
       <provide interface="org.eclipse.smarthome.config.discovery.DiscoveryService"/>
-      <provide interface="org.openhab.binding.connectsdk.internal.discovery.ConnectSDKDiscovery" />
+      <provide interface="org.openhab.binding.lgwebos.internal.discovery.ConnectSDKDiscovery" />
    </service>
 </scr:component>

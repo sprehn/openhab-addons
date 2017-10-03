@@ -63,13 +63,6 @@ WebOS TV has no configuration parameters. Please note that at least one channel 
 
 ## Actions
 
-Add the following Import line
-
-```
-import org.openhab.binding.connectsdk
-```
-
-
 ### Show Toast
 
 ```

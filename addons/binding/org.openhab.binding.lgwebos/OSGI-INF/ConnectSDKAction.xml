@@ -10,7 +10,7 @@
 
 -->
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="action.connectsdk">
-    <implementation class="org.openhab.action.connectsdk.internal.ConnectSDKAction"/>
+    <implementation class="org.openhab.action.lgwebos.internal.ConnectSDKAction"/>
 
     <service>
         <provide interface="org.eclipse.smarthome.model.script.engine.action.ActionService" />
@@ -18,7 +18,7 @@
  
     <property name="service.pid" type="String" value="action.connectsdk" />
     
-    <reference name="discovery" bind="bindDiscovery" unbind="unbindDiscovery" cardinality="1..1" interface="org.openhab.binding.connectsdk.internal.discovery.ConnectSDKDiscovery" policy="static" />
+    <reference name="discovery" bind="bindDiscovery" unbind="unbindDiscovery" cardinality="1..1" interface="org.openhab.binding.lgwebos.internal.discovery.ConnectSDKDiscovery" policy="static" />
     
     
 </scr:component>
