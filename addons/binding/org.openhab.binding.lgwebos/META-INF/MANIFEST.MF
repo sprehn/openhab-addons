@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: ConnectSDK Binding
-Bundle-SymbolicName: org.openhab.binding.connectsdk;singleton:=true
+Bundle-SymbolicName: org.openhab.binding.lgwebos;singleton:=true
 Bundle-Vendor: openHAB
 Bundle-Version: 2.2.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
