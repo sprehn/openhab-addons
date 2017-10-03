@@ -3,131 +3,106 @@
 	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
 	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
 
-
 	<thing-type id="WebOSTV">
 		<label>WebOS TV</label>
 		<description>WebOS based smart TV</description>
-		
+
 		<channels>
-			<channel id="power" typeId="powerChannelType" />
-			<channel id="mute" typeId="muteChannelType" />
+			<channel id="power" typeId="commandType">
+				<label>Power</label>
+				<description>Via this binding TV can only be powered off, not on.</description>
+			</channel>
+			<channel id="mute" typeId="commandType">
+				<label>Mute</label>
+				<description>Current Mute Setting</description>
+			</channel>
 			<channel id="volume" typeId="volumeChannelType" />
-			<channel id="volumeUp" typeId="volumeUpChannelType" />
-			<channel id="volumeDown" typeId="volumeDownChannelType" />
+			<channel id="volumeUp" typeId="commandType">
+				<label>Volume Up</label>
+				<description>Increase Volume</description>
+			</channel>
+			<channel id="volumeDown" typeId="commandType">
+				<label>Volume Down</label>
+				<description>Decrease Volume</description>
+			</channel>
 			<channel id="channel" typeId="channelChannelType" />
-			<channel id="channelUp" typeId="channelUpChannelType" />
-			<channel id="channelDown" typeId="channelDownChannelType" />
+			<channel id="channelUp" typeId="commandType">
+				<label>Channel Up</label>
+				<description>One Channel Up</description>
+			</channel>
+			<channel id="channelDown" typeId="commandType">
+				<label>Channel Down</label>
+				<description>One Channel Down</description>
+			</channel>
 			<channel id="channelName" typeId="channelNameChannelType" />
-			<channel id="toast" typeId="toastChannelType" />			
-			<channel id="mediaForward" typeId="mediaForwardChannelType" />
-			<channel id="mediaPause" typeId="mediaPauseChannelType" />
-			<channel id="mediaPlay" typeId="mediaPlayChannelType" />
-			<channel id="mediaRewind" typeId="mediaRewindChannelType" />
-			<channel id="mediaStop" typeId="mediaStopChannelType" />
+			<channel id="toast" typeId="toastChannelType" />
+			<channel id="mediaForward" typeId="commandType">
+				<label>Forward</label>
+			</channel>
+			<channel id="mediaPause" typeId="commandType">
+				<label>Pause</label>
+			</channel>
+			<channel id="mediaPlay" typeId="commandType">
+				<label>Play</label>
+			</channel>
+			<channel id="mediaRewind" typeId="commandType">
+				<label>Rewind</label>
+			</channel>
+			<channel id="mediaPlayer" typeId="mediaPlayerType" />
+			<channel id="mediaStop" typeId="commandType">
+                <label>Stop</label>
+            </channel>
 			<channel id="mediaState" typeId="mediaStateChannelType" />
 			<channel id="appLauncher" typeId="appLauncherChannelType" />
 		</channels>
 
-		<!--  property as IP must not be changed -->
+		<!-- property as IP must not be changed -->
 		<properties>
-		    <property name="IP" />
+			<property name="IP" />
 		</properties>
-
-        
-        
 	</thing-type>
 
 	<!-- Channel Types -->
+	<channel-type id="commandType">
+		<item-type>Switch</item-type>
+		<label>Command</label>
+		<description>Used to send ON commands to trigger an action. Or send ON and OFF commands to toggle state. Similar to buttons on a remote control.</description>
+	</channel-type>
 	<channel-type id="volumeChannelType">
-		<item-type>Number</item-type>
+		<item-type>Dimmer</item-type>
 		<label>Volume</label>
 		<description>Current Volume Setting</description>
-		<category>SoundVolume</category>
 		<state min="0" max="100" step="1"></state>
-	</channel-type>
-	<channel-type id="powerChannelType">
-		<item-type>Switch</item-type>
-		<label>Power</label>
-		<description>Via this binding TV can only be powered off, not on.</description>
-		<category>PowerOutlet</category>
-	</channel-type>
-	<channel-type id="muteChannelType">
-		<item-type>Switch</item-type>
-		<label>Mute</label>
-		<description>Current Mute Setting</description>
-		<category>Switch</category>
 	</channel-type>
 	<channel-type id="channelChannelType">
 		<item-type>String</item-type>
-		<label>Channel</label>
-		<description>Current Channel</description>
+		<label>Channel Number</label>
+		<description>Current Channel Setting</description>
 	</channel-type>
-
 	<channel-type id="toastChannelType">
 		<item-type>String</item-type>
 		<label>Toast</label>
 	</channel-type>
-	<channel-type id="volumeUpChannelType">
-		<item-type>Switch</item-type>
-		<label>Volume Up</label>
-		<description>Increase Volume</description>
-	</channel-type>
-	<channel-type id="volumeDownChannelType">
-		<item-type>Switch</item-type>
-		<label>Volume Down</label>
-		<description>Decrease Volume</description>
-	</channel-type>
-	<channel-type id="channelUpChannelType">
-		<item-type>Switch</item-type>
-		<label>Channel Up</label>
-		<description>One Channel Up</description>
-	</channel-type>
-	<channel-type id="channelDownChannelType">
-		<item-type>Switch</item-type>
-		<label>Channel Down</label>
-		<description>One Channel Down</description>
-	</channel-type>
 	<channel-type id="channelNameChannelType">
 		<item-type>String</item-type>
-		<label>Channel</label>
+		<label>Channel Name</label>
 		<description>Current Channel Name</description>
 		<state readOnly="true" />
 	</channel-type>
-	<channel-type id="mediaForwardChannelType">
-		<item-type>Switch</item-type>
-		<label>Forward</label>
-		<category>Player</category>
-	</channel-type>
-	<channel-type id="mediaPauseChannelType">
-		<item-type>Switch</item-type>
-		<label>Pause</label>
-		<category>Player</category>
-	</channel-type>
-	<channel-type id="mediaPlayChannelType">
-		<item-type>Switch</item-type>
-		<label>Play</label>
-		<category>Player</category>
-	</channel-type>
-	<channel-type id="mediaRewindChannelType">
-		<item-type>Switch</item-type>
-		<label>Rewind</label>
-		<category>Player</category>
-	</channel-type>
-	<channel-type id="mediaStopChannelType">
-		<item-type>Switch</item-type>
-		<label>Stop</label>
-		<category>Player</category>
+	<channel-type id="mediaPlayerType">
+	   <item-type>Player</item-type>
+	   <label>Media Control</label>
+	   <description>Control media (e.g. audio or video) playback</description>
 	</channel-type>
 	<channel-type id="mediaStateChannelType">
 		<item-type>String</item-type>
 		<label>State</label>
-		<category>Player</category>
 		<state readOnly="true" />
 	</channel-type>
-    <channel-type id="appLauncherChannelType">
-        <item-type>String</item-type>
-        <label>Application</label>
-        <description>Start application and monitor running applications</description>
-    </channel-type>
+	<channel-type id="appLauncherChannelType">
+		<item-type>String</item-type>
+		<label>Application</label>
+		<description>Start application and monitor running applications.</description>
+	</channel-type>
 
 </thing:thing-descriptions>

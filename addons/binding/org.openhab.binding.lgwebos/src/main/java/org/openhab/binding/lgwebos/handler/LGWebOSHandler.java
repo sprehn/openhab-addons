@@ -53,7 +53,7 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
             .put(CHANNEL_MEDIA_FORWARD, new MediaControlForward()).put(CHANNEL_MEDIA_PAUSE, new MediaControlPause())
             .put(CHANNEL_MEDIA_PLAY, new MediaControlPlay()).put(CHANNEL_MEDIA_REWIND, new MediaControlRewind())
             .put(CHANNEL_MEDIA_STOP, new MediaControlStop()).put(CHANNEL_MEDIA_STATE, new MediaControlPlayState())
-            .put(CHANNEL_TOAST, new ToastControlToast()).build();
+            .put(CHANNEL_TOAST, new ToastControlToast()).put(CHANNEL_MEDIA_PLAYER, new MediaControlPlayer()).build();
 
     public LGWebOSHandler(Thing thing, DiscoveryManager discoveryManager) {
         super(thing);

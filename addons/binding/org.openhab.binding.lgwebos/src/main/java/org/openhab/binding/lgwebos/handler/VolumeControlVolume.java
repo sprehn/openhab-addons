@@ -9,6 +9,8 @@
 package org.openhab.binding.lgwebos.handler;
 
 import org.eclipse.smarthome.core.library.types.DecimalType;
+import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
+import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.types.Command;
@@ -36,19 +38,32 @@ public class VolumeControlVolume extends BaseChannelHandler<VolumeListener> {
 
     @Override
     public void onReceiveCommand(final ConnectableDevice d, Command command) {
-        if (d.hasCapabilities(VolumeControl.Volume_Set)) {
-            PercentType percent;
-            if (command instanceof PercentType) {
-                percent = (PercentType) command;
-            } else if (command instanceof DecimalType) {
-                percent = new PercentType(((DecimalType) command).toBigDecimal());
-            } else if (command instanceof StringType) {
-                percent = new PercentType(((StringType) command).toString());
-            } else {
-                logger.warn("only accept precentType");
-                return;
+        PercentType percent = null;
+        if (command instanceof PercentType) {
+            percent = (PercentType) command;
+        } else if (command instanceof DecimalType) {
+            percent = new PercentType(((DecimalType) command).toBigDecimal());
+        } else if (command instanceof StringType) {
+            percent = new PercentType(((StringType) command).toString());
+        }
+        if (percent != null) {
+            if (d.hasCapabilities(VolumeControl.Volume_Set)) {
+                getControl(d).setVolume(percent.floatValue() / 100.0f, createDefaultResponseListener());
             }
-            getControl(d).setVolume(percent.floatValue() / 100.0f, createDefaultResponseListener());
+        } else if (command instanceof IncreaseDecreaseType) {
+            if (IncreaseDecreaseType.INCREASE.equals(command) && d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
+                getControl(d).volumeUp(createDefaultResponseListener());
+            }
+            if (IncreaseDecreaseType.DECREASE.equals(command) && d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
+                getControl(d).volumeDown(createDefaultResponseListener());
+            }
+        } else if (command instanceof OnOffType) {
+            if (d.hasCapabilities(VolumeControl.Mute_Set)) {
+                getControl(d).setMute(OnOffType.OFF.equals(command), createDefaultResponseListener());
+            }
+        } else {
+            logger.warn("Only accept PercentType, DecimalType, StringType, OnOffType. Type was {}.",
+                    command.getClass());
         }
     }
 

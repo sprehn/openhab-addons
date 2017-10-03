@@ -28,7 +28,7 @@ public class LGWebOSBindingConstants {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = ImmutableSet.of(THING_TYPE_WEBOSTV);
 
-    // List of all Channel ids
+    // List of all Channel ids. Values have to match ids in thing-types.xml
     public static final String CHANNEL_VOLUME = "volume";
     public static final String CHANNEL_POWER = "power";
     public static final String CHANNEL_MUTE = "mute";
@@ -44,6 +44,7 @@ public class LGWebOSBindingConstants {
     public static final String CHANNEL_MEDIA_FORWARD = "mediaForward";
     public static final String CHANNEL_MEDIA_PAUSE = "mediaPause";
     public static final String CHANNEL_MEDIA_PLAY = "mediaPlay";
+    public static final String CHANNEL_MEDIA_PLAYER = "mediaPlayer";
     public static final String CHANNEL_MEDIA_REWIND = "mediaRewind";
     public static final String CHANNEL_MEDIA_STOP = "mediaStop";
     public static final String CHANNEL_MEDIA_STATE = "mediaState";
