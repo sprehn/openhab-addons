@@ -24,7 +24,8 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
 /**
- * Handles TV Control Volume Command. Allows to set a volume to an absolute number.
+ * Handles TV Control Volume Commands. Allows to set a volume to an absolute number or increment and decrement the
+ * volume. If used with On Off type commands it will mute volume when receiving OFF and unmute when receiving ON.
  *
  * @author Sebastian Prehn
  * @since 1.8.0
@@ -49,17 +50,26 @@ public class VolumeControlVolume extends BaseChannelHandler<VolumeListener> {
         if (percent != null) {
             if (d.hasCapabilities(VolumeControl.Volume_Set)) {
                 getControl(d).setVolume(percent.floatValue() / 100.0f, createDefaultResponseListener());
+            } else {
+                logger.warn("Device does not have the capability to set volume. Ignoring command {}.", command);
             }
         } else if (command instanceof IncreaseDecreaseType) {
-            if (IncreaseDecreaseType.INCREASE.equals(command) && d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
-                getControl(d).volumeUp(createDefaultResponseListener());
-            }
-            if (IncreaseDecreaseType.DECREASE.equals(command) && d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
-                getControl(d).volumeDown(createDefaultResponseListener());
+            if (d.hasCapabilities(VolumeControl.Volume_Up_Down)) {
+                if (IncreaseDecreaseType.INCREASE.equals(command)) {
+                    getControl(d).volumeUp(createDefaultResponseListener());
+                }
+                if (IncreaseDecreaseType.DECREASE.equals(command)) {
+                    getControl(d).volumeDown(createDefaultResponseListener());
+                }
+            } else {
+                logger.warn("Device does not have the capability to increase or decrease volume. Ignoring command {}.",
+                        command);
             }
         } else if (command instanceof OnOffType) {
             if (d.hasCapabilities(VolumeControl.Mute_Set)) {
                 getControl(d).setMute(OnOffType.OFF.equals(command), createDefaultResponseListener());
+            } else {
+                logger.warn("Device does not have the capability to set mute. Ignoring command {}.", command);
             }
         } else {
             logger.warn("Only accept PercentType, DecimalType, StringType, OnOffType. Type was {}.",

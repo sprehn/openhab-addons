@@ -44,9 +44,7 @@ WebOS TV has no configuration parameters. Please note that at least one channel 
 | --------------- | ------------ | ------------ | ---------- |
 | power | Switch | Current power setting. TV can only be powered off, not on. (ON/OFF) | RW |
 | mute | Switch | Current mute setting.  (ON/OFF) |  RW |
-| volume | Number | Current volume setting. Note this only works with reasonable values when using internal speakers. Connected to an external amp the volume should be controlled using volumeUp and volumeDown switches to set relative volume. |  RW |
-| volumeUp | Switch | Increase volume. (ON/OFF) |  W | 
-| volumeDown | Switch | Decrease volume. (ON/OFF) | W | 
+| volume | Dimmer | Current volume setting. Setting and reporting absolute percent values only works when using internal speakers. Connected to an external amp the volume should be controlled using increase and decrease relative commands. |  RW |
 | channel | String | Current channel | RW | 
 | channelUp | Switch | One channel up (ON/OFF) |  W |
 | channelDown | Switch | One channel down (ON/OFF) |  W |
@@ -115,23 +113,16 @@ demo.items:
 ```
 Switch LG_TV0_Power "TV Power" <television> { channel="lgwebos:WebOSTV:192_168_2_119:power" }
 Switch LG_TV0_Mute  "TV Mute" { channel="lgwebos:WebOSTV:192_168_2_119:mute"}
-Number LG_TV0_Volume "Volume [%S]" { channel="lgwebos:WebOSTV:192_168_2_119:volume" }
-Switch LG_TV0_VolumeDown "Volume -" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:volumeDown" }
-Switch LG_TV0_VolumeUp "Volume +" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:volumeUp" }
+Dimmer LG_TV0_Volume "Volume [%S]" { channel="lgwebos:WebOSTV:192_168_2_119:volume" }
+Number LG_TV0_VolDummy "VolumeUpDown" { autoupdate="false" }
 Number LG_TV0_ChannelNo "Channel #" { channel="lgwebos:WebOSTV:192_168_2_119:channel" }
 Switch LG_TV0_ChannelDown "Channel -"  { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:channelDown"  }
 Switch LG_TV0_ChannelUp "Channel +"  { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:channelUp"  }
 String LG_TV0_Channel "Channel [%S]"  { channel="lgwebos:WebOSTV:192_168_2_119:channelName"}
-
-String LG_TV0_MediaState "MediaState [%s]" {channel="lgwebos:WebOSTV:192_168_2_119:mediaState"}
 String LG_TV0_Toast { channel="lgwebos:WebOSTV:192_168_2_119:toast"}
-Switch LG_TV0_Play ">"  { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:mediaPlay" }
 Switch LG_TV0_Stop "Stop" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:mediaStop" }
-Switch LG_TV0_Pause "||" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:mediaPause" }
-Switch LG_TV0_Forward ">>" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:mediaForward" }
-Switch LG_TV0_Rewind "<<" { autoupdate="false", channel="lgwebos:WebOSTV:192_168_2_119:mediaRewind" }
 String LG_TV0_Application "Application [%s]"  {channel="lgwebos:WebOSTV:192_168_2_119:appLauncher"} 
-Player LG_TV0_Player 
+Player LG_TV0_Player {channel="lgwebos:WebOSTV:192_168_2_119:mediaPlayer"}
 
 // this assumes you also have the wake on lan binding configured & You need to update your broadcast and mac address
 Switch LG_TV0_WOL   { wol="192.168.2.255#3c:cd:93:c2:20:e0" }
@@ -146,13 +137,11 @@ sitemap demo label="Main Menu"
         Switch item=LG_TV0_Power
         Switch item=LG_TV0_Mute
         Text item=LG_TV0_Volume
-        Switch item=LG_TV0_VolumeDown
-        Switch item=LG_TV0_VolumeUp
+        Switch item=LG_TV0_VolDummy icon="soundvolume" label="Volume" mappings=[1="▲", 0="▼"]
         Text item=LG_TV0_ChannelNo
         Text item=LG_TV0_Channel
         Switch item=LG_TV0_ChannelDown
         Switch item=LG_TV0_ChannelUp
-        Text item=LG_TV0_MediaState
         Default item=LG_TV0_Player 
         Text item=LG_TV0_Application
         Selection item=LG_TV0_Application mappings=[
@@ -185,28 +174,14 @@ then
     sendCommand( LG_TV0_WOL, ON) 
 end
 
-
-rule "Player 0"
-when Item LG_TV0_Player received command
+// for relative volume changes
+rule "VolumeUpDown"
+when Item LG_TV0_VolDummy received command
 then
-switch receivedCommand {
-    case NEXT: LG_TV0_Forward.send(ON)
-    case PLAY: LG_TV0_Play.send(ON)
-    case PAUSE: LG_TV0_Pause.send(ON)
-    case PREVIOUS: LG_TV0_Rewind.send(ON)
-}
-end
-
-rule "Player 1"
-when Item LG_TV0_Play changed to ON
-then
-    LG_TV0_Player.send(PLAY)
-end
-
-rule "Player 2"
-when Item LG_TV0_Pause changed to ON
-then
-    LG_TV0_Player.send(PAUSE)
+    switch receivedCommand{
+        case 0: LG_TV0_Volume.sendCommand(DECREASE)
+        case 1: LG_TV0_Volume.sendCommand(INCREASE)
+    }
 end
 ```
 

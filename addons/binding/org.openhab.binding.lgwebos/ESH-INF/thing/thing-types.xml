@@ -17,14 +17,6 @@
 				<description>Current Mute Setting</description>
 			</channel>
 			<channel id="volume" typeId="volumeChannelType" />
-			<channel id="volumeUp" typeId="commandType">
-				<label>Volume Up</label>
-				<description>Increase Volume</description>
-			</channel>
-			<channel id="volumeDown" typeId="commandType">
-				<label>Volume Down</label>
-				<description>Decrease Volume</description>
-			</channel>
 			<channel id="channel" typeId="channelChannelType" />
 			<channel id="channelUp" typeId="commandType">
 				<label>Channel Up</label>
@@ -36,23 +28,10 @@
 			</channel>
 			<channel id="channelName" typeId="channelNameChannelType" />
 			<channel id="toast" typeId="toastChannelType" />
-			<channel id="mediaForward" typeId="commandType">
-				<label>Forward</label>
-			</channel>
-			<channel id="mediaPause" typeId="commandType">
-				<label>Pause</label>
-			</channel>
-			<channel id="mediaPlay" typeId="commandType">
-				<label>Play</label>
-			</channel>
-			<channel id="mediaRewind" typeId="commandType">
-				<label>Rewind</label>
-			</channel>
 			<channel id="mediaPlayer" typeId="mediaPlayerType" />
 			<channel id="mediaStop" typeId="commandType">
                 <label>Stop</label>
             </channel>
-			<channel id="mediaState" typeId="mediaStateChannelType" />
 			<channel id="appLauncher" typeId="appLauncherChannelType" />
 		</channels>
 
@@ -93,11 +72,6 @@
 	   <item-type>Player</item-type>
 	   <label>Media Control</label>
 	   <description>Control media (e.g. audio or video) playback</description>
-	</channel-type>
-	<channel-type id="mediaStateChannelType">
-		<item-type>String</item-type>
-		<label>State</label>
-		<state readOnly="true" />
 	</channel-type>
 	<channel-type id="appLauncherChannelType">
 		<item-type>String</item-type>

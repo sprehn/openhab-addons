@@ -45,8 +45,7 @@ abstract class BaseChannelHandler<T> implements ChannelHandler {
     }
 
     @Override
-    public void onDeviceRemoved(final ConnectableDevice device, final String channelId,
-            final LGWebOSHandler handler) {
+    public void onDeviceRemoved(final ConnectableDevice device, final String channelId, final LGWebOSHandler handler) {
         // NOP
     }
 
@@ -93,12 +92,12 @@ abstract class BaseChannelHandler<T> implements ChannelHandler {
 
             @Override
             public void onError(ServiceCommandError error) {
-                logger.warn("{}: {}.", this.getClass().getName(), error.getMessage());
+                logger.warn("{}: received error response: {}.", BaseChannelHandler.this.getClass().getName(), error);
             }
 
             @Override
             public void onSuccess(O object) {
-                logger.debug("{}: {}.", this.getClass().getName(), object);
+                logger.debug("{}: {}.", BaseChannelHandler.this.getClass().getName(), object);
             }
         };
     }
