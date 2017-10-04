@@ -59,7 +59,7 @@ public class LGWebOSDiscovery extends AbstractDiscoveryService implements Discov
 
     @Override
     protected void activate(Map<String, Object> configProperties) {
-        logger.info("Config Parameters: {}", configProperties);
+        logger.debug("Config Parameters: {}", configProperties);
         localInetAddresses = findLocalInetAddresses((String) configProperties.get("localIP"));
         Util.init(AbstractDiscoveryService.scheduler);
         discoveryManager = DiscoveryManager.getInstance();
@@ -106,14 +106,14 @@ public class LGWebOSDiscovery extends AbstractDiscoveryService implements Discov
 
     @Override
     public void onDeviceUpdated(DiscoveryManager manager, ConnectableDevice device) {
-        logger.info("Device updated: {}", device);
+        logger.debug("Device updated: {}", device);
         thingRemoved(createThingUID(device));
         thingDiscovered(createDiscoveryResult(device));
     }
 
     @Override
     public void onDeviceRemoved(DiscoveryManager manager, ConnectableDevice device) {
-        logger.info("Device removed: {}", device);
+        logger.debug("Device removed: {}", device);
         thingRemoved(createThingUID(device));
     }
 

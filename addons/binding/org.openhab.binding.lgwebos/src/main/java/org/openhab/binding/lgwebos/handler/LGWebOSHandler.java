@@ -175,7 +175,12 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
      */
     private void refreshChannelSubscription(ChannelUID channelUID) {
         String channelId = channelUID.getId();
-        channelHandlers.get(channelId).refreshSubscription(getDevice(), channelId, this);
+        ConnectableDevice device = getDevice();
+
+        // may be called even if the device is not currently connected
+        if (device != null && device.isConnected()) {
+            channelHandlers.get(channelId).refreshSubscription(device, channelId, this);
+        }
     }
 
     /**
