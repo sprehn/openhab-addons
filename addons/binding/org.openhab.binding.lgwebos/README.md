@@ -50,12 +50,8 @@ WebOS TV has no configuration parameters. Please note that at least one channel 
 | channelDown | Switch | One channel down (ON/OFF) |  W |
 | channelName | String | Current channel name |  R |
 | toast | String | Displays a short message on the TV screen. See also rules section. |  W |
-| mediaForward | Switch | Media control forward (ON/OFF) |  W | 
-| mediaPause | Switch | Media control pause (ON/OFF) | W |
-| mediaPlay | Switch | Media control play (ON/OFF) |  W |
-| mediaRewind | Switch | Media control rewind (ON/OFF) | W | 
+| mediaPlayer | Player | Media control player (ON/OFF) |  W |
 | mediaStop | Switch | Media control stop (ON/OFF) |  W |
-| mediaState | String | Media's current state |  R |
 | appLauncher | String | Application ID of currently running application. This also allows to start applications on the TV by sending a specific Application ID to this channel. |  RW |
 
 
