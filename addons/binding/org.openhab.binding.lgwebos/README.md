@@ -42,16 +42,16 @@ WebOS TV has no configuration parameters. Please note that at least one channel 
 
 | Channel Type ID | Item Type    | Description  | Read/Write |
 | --------------- | ------------ | ------------ | ---------- |
-| power | Switch | Current power setting. TV can only be powered off, not on. (ON/OFF) | RW |
-| mute | Switch | Current mute setting.  (ON/OFF) |  RW |
+| power | Switch | Current power setting. TV can only be powered off, not on.  | RW |
+| mute | Switch | Current mute setting.  |  RW |
 | volume | Dimmer | Current volume setting. Setting and reporting absolute percent values only works when using internal speakers. Connected to an external amp the volume should be controlled using increase and decrease relative commands. |  RW |
 | channel | String | Current channel | RW | 
-| channelUp | Switch | One channel up (ON/OFF) |  W |
-| channelDown | Switch | One channel down (ON/OFF) |  W |
+| channelUp | Switch | One channel up |  W |
+| channelDown | Switch | One channel down  |  W |
 | channelName | String | Current channel name |  R |
 | toast | String | Displays a short message on the TV screen. See also rules section. |  W |
-| mediaPlayer | Player | Media control player (ON/OFF) |  W |
-| mediaStop | Switch | Media control stop (ON/OFF) |  W |
+| mediaPlayer | Player | Media control player |  W |
+| mediaStop | Switch | Media control stop  |  W |
 | appLauncher | String | Application ID of currently running application. This also allows to start applications on the TV by sending a specific Application ID to this channel. |  RW |
 
 
