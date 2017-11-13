@@ -20,7 +20,6 @@ import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.model.script.engine.action.ActionDoc;
 import org.eclipse.smarthome.model.script.engine.action.ActionService;
 import org.eclipse.smarthome.model.script.engine.action.ParamDoc;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.CapabilityMethods;
+import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
@@ -81,40 +81,39 @@ public class LGWebOSAction implements ActionService {
     @ActionDoc(text = "sends a toast message to a web os device with custom icon")
     public static void showToast(@ParamDoc(name = "deviceId") String deviceId, @ParamDoc(name = "icon") String icon,
             @ParamDoc(name = "text") String text) throws IOException {
-        ToastControl control = getControl(ToastControl.class, deviceId);
-        if (control != null) {
+        Optional<ToastControl> control = getControl(ToastControl.class, deviceId);
+        if (control.isPresent()) {
             BufferedImage bi = ImageIO.read(new URL(icon));
             try (ByteArrayOutputStream os = new ByteArrayOutputStream();
                     OutputStream b64 = Base64.getEncoder().wrap(os);) {
                 ImageIO.write(bi, "png", b64);
-                control.showToast(text, os.toString(StandardCharsets.UTF_8.name()), "png", responseListenerObject);
+                control.get().showToast(text, os.toString(StandardCharsets.UTF_8.name()), "png",
+                        responseListenerObject);
             }
         }
     }
 
     @ActionDoc(text = "opens the given URL in the TV's browser app")
     public static void launchBrowser(@ParamDoc(name = "deviceId") String deviceId, @ParamDoc(name = "url") String url) {
-        Launcher control = getControl(Launcher.class, deviceId);
-        if (control != null) {
-            control.launchBrowser(url, responseListenerLaunchSession);
-        }
+        getControl(Launcher.class, deviceId)
+                .ifPresent(control -> control.launchBrowser(url, responseListenerLaunchSession));
     }
 
     @ActionDoc(text = "opens the application with given appId")
     public static void launchApplication(@ParamDoc(name = "deviceId") String deviceId,
             @ParamDoc(name = "appId") String appId) {
-        Launcher control = getControl(Launcher.class, deviceId);
-        if (control != null) {
-            control.launchApp(appId, responseListenerLaunchSession);
-        }
+        getControl(Launcher.class, deviceId)
+                .ifPresent(control -> control.launchApp(appId, responseListenerLaunchSession));
+        ;
+
     }
 
     @ActionDoc(text = "opens the application with given appId and passes additional parameters")
     public static void launchApplicationWithParam(@ParamDoc(name = "deviceId") String deviceId,
             @ParamDoc(name = "appId") String appId, Object param) {
-        Launcher control = getControl(Launcher.class, deviceId);
-        if (control != null) {
-            control.getAppList(new Launcher.AppListListener() {
+        Optional<Launcher> control = getControl(Launcher.class, deviceId);
+        if (control.isPresent()) {
+            control.get().getAppList(new Launcher.AppListListener() {
                 @Override
                 public void onError(ServiceCommandError error) {
                     LOGGER.warn("error requesting application list: {}.", error.getMessage());
@@ -124,7 +123,7 @@ public class LGWebOSAction implements ActionService {
                 public void onSuccess(List<AppInfo> appInfos) {
                     Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(appId)).findFirst();
                     if (appInfo.isPresent()) {
-                        control.launchAppWithInfo(appInfo.get(), param, responseListenerLaunchSession);
+                        control.get().launchAppWithInfo(appInfo.get(), param, responseListenerLaunchSession);
                     } else {
                         LOGGER.warn("TV does not support any app with id: {}.", appId);
                     }
@@ -135,40 +134,66 @@ public class LGWebOSAction implements ActionService {
 
     @ActionDoc(text = "sends a text input to a web os device")
     public static void sendText(@ParamDoc(name = "deviceId") String deviceId, @ParamDoc(name = "text") String text) {
-        TextInputControl control = getControl(TextInputControl.class, deviceId);
-        if (control != null) {
-            control.sendText(text);
-        }
+        getControl(TextInputControl.class, deviceId).ifPresent(control -> control.sendText(text));
     }
 
-    @ActionDoc(text = "sends the enter key to a web os device")
+    @ActionDoc(text = "sends the Enter key to a web os device")
     public static void sendEnter(@ParamDoc(name = "deviceId") String deviceId) {
-        TextInputControl control = getControl(TextInputControl.class, deviceId);
-        if (control != null) {
-            control.sendEnter();
-        }
+        getControl(TextInputControl.class, deviceId).ifPresent(control -> control.sendEnter());
     }
 
-    @ActionDoc(text = "sends the delete key to a web os device")
+    @ActionDoc(text = "sends the Delete key to a web os device")
     public static void sendDelete(@ParamDoc(name = "deviceId") String deviceId) {
-        TextInputControl control = getControl(TextInputControl.class, deviceId);
-        if (control != null) {
-            control.sendDelete();
-        }
+        getControl(TextInputControl.class, deviceId).ifPresent(control -> control.sendDelete());
     }
 
-    private static <C extends CapabilityMethods> @Nullable C getControl(Class<C> clazz, String deviceId) {
+    @ActionDoc(text = "sends the OK key to a web os device")
+    public static void sendOK(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.ok(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Back key to a web os device")
+    public static void sendBack(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.back(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Down key to a web os device")
+    public static void sendDown(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.down(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Home key to a web os device")
+    public static void sendHome(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.home(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Left key to a web os device")
+    public static void sendLeft(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.left(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Right key to a web os device")
+    public static void sendRight(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.right(responseListenerObject));
+    }
+
+    @ActionDoc(text = "sends the Up key to a web os device")
+    public static void sendUp(@ParamDoc(name = "deviceId") String deviceId) {
+        getControl(KeyControl.class, deviceId).ifPresent(control -> control.up(responseListenerObject));
+    }
+
+    private static <C extends CapabilityMethods> Optional<C> getControl(Class<C> clazz, String deviceId) {
         final ConnectableDevice device = discovery.getDiscoveryManager().getCompatibleDevices().get(deviceId);
         if (device == null) {
             LOGGER.warn("No device found with id: {}", deviceId);
-            return null;
+            return Optional.empty();
         }
         C control = device.getCapability(clazz);
         if (control == null) {
             LOGGER.warn("Device {} does not have the ability: {}", deviceId, clazz.getName());
-            return null;
+            return Optional.empty();
         }
-        return control;
+        return Optional.of(control);
     }
 
     private static <O> ResponseListener<O> createDefaultResponseListener() {
