@@ -15,6 +15,7 @@ package org.openhab.binding.lgwebos.internal;
 import java.util.Collections;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 
@@ -30,12 +31,13 @@ public class LGWebOSBindingConstants {
 
     public static final ThingTypeUID THING_TYPE_WEBOSTV = new ThingTypeUID(BINDING_ID, "WebOSTV");
 
-    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_WEBOSTV);
+    public static final Set<@NonNull ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections
+            .singleton(THING_TYPE_WEBOSTV);
 
     public static final String BINDING_CONFIGURATION_LOCALIP = "localIP";
 
     public static final String PROPERTY_DEVICE_ID = "deviceId";
-
+    public static final String PROPERTY_DEVICE_HOST = "deviceHost";
     // List of all Channel ids. Values have to match ids in thing-types.xml
     public static final String CHANNEL_VOLUME = "volume";
     public static final String CHANNEL_POWER = "power";
