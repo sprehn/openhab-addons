@@ -29,7 +29,6 @@ import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
 import org.eclipse.smarthome.core.net.NetworkAddressService;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants;
-import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +46,8 @@ import com.connectsdk.service.command.ServiceCommandError;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-@Component(service = { /* DiscoveryService.class, */
-        LGWebOSDiscovery.class }, immediate = true, configurationPid = "binding.lgwebos")
+// @Component(service = { DiscoveryService.class,
+// LGWebOSDiscovery.class }, immediate = true, configurationPid = "binding.lgwebos")
 public class LGWebOSDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
     private static final int DISCOVERY_TIMEOUT_SECONDS = 5;
 

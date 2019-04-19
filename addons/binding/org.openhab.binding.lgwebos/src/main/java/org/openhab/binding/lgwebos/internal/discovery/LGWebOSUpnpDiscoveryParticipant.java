@@ -1,12 +1,13 @@
 package org.openhab.binding.lgwebos.internal.discovery;
 
-import static org.openhab.binding.lgwebos.LGWebOSBindingConstants.*;
+import static org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants.*;
 
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
@@ -16,21 +17,36 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.jupnp.UpnpService;
 import org.jupnp.model.message.header.ServiceTypeHeader;
+import org.jupnp.model.meta.LocalDevice;
 import org.jupnp.model.meta.RemoteDevice;
+import org.jupnp.model.meta.RemoteService;
 import org.jupnp.model.types.ServiceType;
-import org.openhab.binding.lgwebos.LGWebOSBindingConstants;
+import org.jupnp.registry.Registry;
+import org.jupnp.registry.RegistryListener;
+import org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.connectsdk.service.WebOSTVService;
+import com.connectsdk.service.config.ServiceConfig;
+import com.connectsdk.service.config.ServiceDescription;
+
+@NonNullByDefault
 @Component(immediate = true, configurationPid = "binding.lgwebos.upnp")
+public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant, RegistryListener {
 
-public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
+    private final Logger logger = LoggerFactory.getLogger(LGWebOSUpnpDiscoveryParticipant.class);
 
+    @NonNullByDefault({})
     private UpnpService upnpService;
-    // private final Logger logger = LoggerFactory.getLogger(LGWebOSUpnpDiscoveryParticipant.class);
+
     private final ServiceType serviceType = new ServiceType("lge-com", "webos-second-screen", 1);
+
+    @NonNullByDefault({})
     private ScheduledExecutorService scheduler;
 
     @Reference
@@ -46,11 +62,15 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
     private void activate() {
         scheduler = ThreadPoolManager.getScheduledPool("LG WebOS Discovery");
         scheduler.scheduleAtFixedRate(() -> search(), 0, 10, TimeUnit.SECONDS);
+
+        upnpService.getRegistry().addListener(this);
     }
 
     @Deactivate
     private void deactivate() {
+        upnpService.getRegistry().removeListener(this);
         scheduler.shutdown();
+        scheduler = null;
     }
 
     @Override
@@ -90,9 +110,13 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
          * modelName "LG TV"
          * but those devices have different UDNs as well
          */
+
         if (device.findService(serviceType) != null) {
+            logger.debug("found MATCHING device {}", device);
             // || "LG TV".equals(device.getDetails().getModelDetails().getModelName())) {
             return new ThingUID(THING_TYPE_WEBOSTV, device.getIdentity().getUdn().getIdentifierString());
+        } else {
+            logger.debug("found non matching device {}", device);
         }
 
         return null;
@@ -100,5 +124,79 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
 
     private void search() {
         upnpService.getControlPoint().search(new ServiceTypeHeader(serviceType));
+    }
+
+    // RegistryListener
+    @Override
+    public void afterShutdown() {
+
+    }
+
+    @Override
+    public void beforeShutdown(@Nullable Registry arg0) {
+
+    }
+
+    @Override
+    public void localDeviceAdded(@Nullable Registry arg0, @Nullable LocalDevice device) {
+        logger.debug("local device added {}", device);
+    }
+
+    @Override
+    public void localDeviceRemoved(@Nullable Registry arg0, @Nullable LocalDevice device) {
+        logger.debug("local device removed {}", device);
+
+    }
+
+    @Override
+    public void remoteDeviceAdded(@Nullable Registry arg0, @Nullable RemoteDevice device) {
+        logger.debug("remote device added {}", device);
+        RemoteService remoteService = device.findService(serviceType);
+        if (remoteService != null) {
+            ServiceDescription service = new ServiceDescription();
+            service.setUUID(remoteService.getServiceId().toString()); // TODO is this a UUID?
+            service.setServiceFilter(remoteService.getServiceType().toString());
+            service.setFriendlyName(device.getDetails().getFriendlyName());
+            service.setModelName(device.getDetails().getModelDetails().getModelName());
+            service.setModelNumber(device.getDetails().getModelDetails().getModelNumber());
+            service.setModelDescription(device.getDetails().getModelDetails().getModelDescription());
+            service.setManufacturer(device.getDetails().getManufacturerDetails().getManufacturer());
+            service.setIpAddress(device.getIdentity().getDescriptorURL().getHost());
+            remoteService.getDevice().getVersion().toString(); // TODO compare this with the connect sdk version
+                                                               // handling
+            // service.setVersion(version); // TODO
+            WebOSTVService webOSTVService = new WebOSTVService(service, new ServiceConfig(service));
+
+            // TODO: need to store it so that handlers can retrieve it.
+            // TODO: need to persist secrets,which are currently in StoredDecives
+
+            // TODO: or register this instead of SSDPDiscoveryProvider in DiscoveryManager
+
+            // devicesList.put("com.connectsdk.service.WebOSTVService",
+            // "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+
+        }
+    }
+
+    @Override
+    public void remoteDeviceDiscoveryFailed(@Nullable Registry arg0, @Nullable RemoteDevice arg1,
+            @Nullable Exception arg2) {
+    }
+
+    @Override
+    public void remoteDeviceDiscoveryStarted(@Nullable Registry arg0, @Nullable RemoteDevice arg1) {
+    }
+
+    @Override
+    public void remoteDeviceRemoved(@Nullable Registry arg0, @Nullable RemoteDevice device) {
+        logger.debug("remote device removed {}", device); // <-- TODO mark offline
+    }
+
+    @Override
+    public void remoteDeviceUpdated(@Nullable Registry arg0, @Nullable RemoteDevice device) {
+        logger.debug("remote device updated {}", device);
+
+        // TODO add timeout, so that device disappears if unseen for a while (even if it did not send byebye maybe due
+        // to sudden power loss)
     }
 }

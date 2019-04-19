@@ -21,8 +21,8 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
-import org.openhab.binding.lgwebos.internal.discovery.LGWebOSDiscovery;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.discovery.LGWebOSUpnpDiscoveryParticipant;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -35,7 +35,7 @@ import org.osgi.service.component.annotations.Reference;
 @NonNullByDefault
 @Component(service = ThingHandlerFactory.class, configurationPid = "binding.lgwebos")
 public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
-    private @Nullable LGWebOSDiscovery discovery;
+    private @Nullable LGWebOSUpnpDiscoveryParticipant discovery;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -43,23 +43,24 @@ public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
     }
 
     @Reference
-    protected void bindDiscovery(LGWebOSDiscovery discovery) {
+    protected void bindDiscovery(LGWebOSUpnpDiscoveryParticipant discovery) {
         this.discovery = discovery;
     }
 
-    protected void unbindDiscovery(LGWebOSDiscovery discovery) {
+    protected void unbindDiscovery(LGWebOSUpnpDiscoveryParticipant discovery) {
         this.discovery = null;
     }
 
     @Override
     protected @Nullable ThingHandler createHandler(Thing thing) {
-        LGWebOSDiscovery lgWebOSDiscovery = discovery;
+        LGWebOSUpnpDiscoveryParticipant lgWebOSDiscovery = discovery;
         if (lgWebOSDiscovery == null) {
-            throw new IllegalStateException("LGWebOSDiscovery must be bound before ThingHandlers can be created");
+            throw new IllegalStateException(
+                    "LGWebOSUpnpDiscoveryParticipant must be bound before ThingHandlers can be created");
         }
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         if (thingTypeUID.equals(THING_TYPE_WEBOSTV)) {
-            return new LGWebOSHandler(thing, lgWebOSDiscovery.getDiscoveryManager());
+            return new LGWebOSHandler(thing, lgWebOSDiscovery);
         }
         return null;
     }
