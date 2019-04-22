@@ -22,9 +22,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
 import org.openhab.binding.lgwebos.handler.LGWebOSHandler;
-import org.openhab.binding.lgwebos.internal.discovery.LGWebOSUpnpDiscoveryParticipant;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 
 /**
  * The {@link LGWebOSHandlerFactory} is responsible for creating things and thing
@@ -35,32 +33,17 @@ import org.osgi.service.component.annotations.Reference;
 @NonNullByDefault
 @Component(service = ThingHandlerFactory.class, configurationPid = "binding.lgwebos")
 public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
-    private @Nullable LGWebOSUpnpDiscoveryParticipant discovery;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
-    @Reference
-    protected void bindDiscovery(LGWebOSUpnpDiscoveryParticipant discovery) {
-        this.discovery = discovery;
-    }
-
-    protected void unbindDiscovery(LGWebOSUpnpDiscoveryParticipant discovery) {
-        this.discovery = null;
-    }
-
     @Override
     protected @Nullable ThingHandler createHandler(Thing thing) {
-        LGWebOSUpnpDiscoveryParticipant lgWebOSDiscovery = discovery;
-        if (lgWebOSDiscovery == null) {
-            throw new IllegalStateException(
-                    "LGWebOSUpnpDiscoveryParticipant must be bound before ThingHandlers can be created");
-        }
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         if (thingTypeUID.equals(THING_TYPE_WEBOSTV)) {
-            return new LGWebOSHandler(thing, lgWebOSDiscovery);
+            return new LGWebOSHandler(thing);
         }
         return null;
     }

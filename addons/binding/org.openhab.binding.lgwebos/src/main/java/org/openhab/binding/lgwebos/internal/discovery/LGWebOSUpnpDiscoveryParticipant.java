@@ -2,6 +2,7 @@ package org.openhab.binding.lgwebos.internal.discovery;
 
 import static org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants.*;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,24 +26,20 @@ import org.jupnp.registry.Registry;
 import org.jupnp.registry.RegistryListener;
 import org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants;
 import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.connectsdk.service.WebOSTVService;
-import com.connectsdk.service.config.ServiceConfig;
-import com.connectsdk.service.config.ServiceDescription;
-
 @NonNullByDefault
-@Component(immediate = true, configurationPid = "binding.lgwebos.upnp")
+// @Component(immediate = true, configurationPid = "binding.lgwebos.upnp")
 public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant, RegistryListener {
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSUpnpDiscoveryParticipant.class);
 
     @NonNullByDefault({})
     private UpnpService upnpService;
+    @NonNullByDefault({})
 
     private final ServiceType serviceType = new ServiceType("lge-com", "webos-second-screen", 1);
 
@@ -88,8 +85,20 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
 
         return DiscoveryResultBuilder.create(thingUID).withLabel(device.getDetails().getFriendlyName())
                 .withProperty(PROPERTY_DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
-                .withProperty(PROPERTY_DEVICE_HOST, device.getIdentity().getDescriptorURL().getHost())
-                .withRepresentationProperty(PROPERTY_DEVICE_ID).build();
+                .withProperty("ipAddress", device.getIdentity().getDescriptorURL().getHost())
+
+                .withProperty("friendlyName", device.getDetails().getFriendlyName())
+                .withProperty("modelName", device.getDetails().getModelDetails().getModelName())
+                .withProperty("modelNumber", device.getDetails().getModelDetails().getModelNumber())
+
+                .withProperty("descriptorUrl", device.getIdentity().getDescriptorURL())
+                .withProperty("serialNumber", device.getDetails().getSerialNumber())
+                .withProperty("manufacturer", device.getDetails().getManufacturerDetails().getManufacturer())
+
+                // .withProperty("lastConnected", Instant.now().toString())
+                .withProperty("lastDetection", Instant.now().toString())
+                // .withProperty(PROPERTY_DEVICE_HOST, )
+                .withRepresentationProperty(PROPERTY_DEVICE_ID).withThingType(THING_TYPE_WEBOSTV).build();
     }
 
     @Override
@@ -153,20 +162,24 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
         logger.debug("remote device added {}", device);
         RemoteService remoteService = device.findService(serviceType);
         if (remoteService != null) {
-            ServiceDescription service = new ServiceDescription();
-            service.setUUID(remoteService.getServiceId().toString()); // TODO is this a UUID?
-            service.setServiceFilter(remoteService.getServiceType().toString());
-            service.setFriendlyName(device.getDetails().getFriendlyName());
-            service.setModelName(device.getDetails().getModelDetails().getModelName());
-            service.setModelNumber(device.getDetails().getModelDetails().getModelNumber());
-            service.setModelDescription(device.getDetails().getModelDetails().getModelDescription());
-            service.setManufacturer(device.getDetails().getManufacturerDetails().getManufacturer());
-            service.setIpAddress(device.getIdentity().getDescriptorURL().getHost());
-            remoteService.getDevice().getVersion().toString(); // TODO compare this with the connect sdk version
-                                                               // handling
-            // service.setVersion(version); // TODO
-            WebOSTVService webOSTVService = new WebOSTVService(service, new ServiceConfig(service));
+            /*
+             * ServiceDescription service = new ServiceDescription();
+             * service.setUUID(remoteService.getServiceId().toString()); // TODO is this a UUID?
+             * service.setServiceFilter(remoteService.getServiceType().toString());
+             * service.setFriendlyName(device.getDetails().getFriendlyName());
+             * service.setModelName(device.getDetails().getModelDetails().getModelName());
+             * service.setModelNumber(device.getDetails().getModelDetails().getModelNumber());
+             * service.setModelDescription(device.getDetails().getModelDetails().getModelDescription());
+             * service.setManufacturer(device.getDetails().getManufacturerDetails().getManufacturer());
+             * service.setIpAddress(device.getIdentity().getDescriptorURL().getHost());
+             * remoteService.getDevice().getVersion().toString(); // TODO compare this with the connect sdk version
+             * // handling
+             * // service.setVersion(version); // TODO
+             * WebOSTVService webOSTVService = new WebOSTVService(service, new ServiceConfig(service));
+             */
 
+            // lgWebOsDiscovery.deviceDiscovered(remoteService.getServiceId().toString(),
+            // device.getDetails().getFriendlyName(), device.getIdentity().getDescriptorURL().getHost());
             // TODO: need to store it so that handlers can retrieve it.
             // TODO: need to persist secrets,which are currently in StoredDecives
 

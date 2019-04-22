@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <config-description:config-descriptions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
 	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
@@ -7,6 +8,11 @@
 	<config-description uri="thing-type:lgwebos:WebOSTV">
 		<parameter name="deviceId" type="text" required="true">
 			<label>Device ID</label>
+		</parameter>
+		<parameter name="deviceHost" type="text" required="false">
+			<label>Host</label>
+			<description>Host or IP address of TV.</description>
+			<context>network-address</context>
 		</parameter>
 	</config-description>
 

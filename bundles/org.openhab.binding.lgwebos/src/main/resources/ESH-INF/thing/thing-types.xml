@@ -19,8 +19,20 @@
 			<channel id="mediaStop" typeId="mediaStopType" />
 			<channel id="appLauncher" typeId="appLauncherChannelType" />
 		</channels>
-
+        
+        <properties>
+          <property name="ipAddress" /> 
+          <property name="friendlyName" /> 
+          <property name="modelName" /> 
+          <property name="modelNumber" /> 
+          <property name="descriptorUrl" /> 
+          <property name="serialNumber" /> 
+          <property name="manufacturer" />       
+          <property name="lastConnected" />  
+          <property name="lastDetection" />  
+        </properties>
 		<representation-property>deviceId</representation-property>
+		
 
 		<config-description-ref uri="thing-type:lgwebos:WebOSTV" />
 	</thing-type>

@@ -24,7 +24,6 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.config.core.ConfigConstants;
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
-import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
 import org.eclipse.smarthome.core.net.NetworkAddressService;
 import org.eclipse.smarthome.core.thing.ThingUID;
@@ -35,10 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.connectsdk.core.Context;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.discovery.DiscoveryManager;
-import com.connectsdk.discovery.DiscoveryManagerListener;
-import com.connectsdk.service.command.ServiceCommandError;
 
 /**
  * This class provides the bridge between openhab thing discovery and connect sdk device discovery.
@@ -46,9 +42,11 @@ import com.connectsdk.service.command.ServiceCommandError;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-// @Component(service = { DiscoveryService.class,
-// LGWebOSDiscovery.class }, immediate = true, configurationPid = "binding.lgwebos")
-public class LGWebOSDiscovery extends AbstractDiscoveryService implements DiscoveryManagerListener, Context {
+/*
+ * @Component(service = { DiscoveryService.class,
+ * LGWebOSDiscovery.class }, immediate = true, configurationPid = "binding.lgwebos.discover")
+ */
+public class LGWebOSDiscovery extends AbstractDiscoveryService implements Context {
     private static final int DISCOVERY_TIMEOUT_SECONDS = 5;
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSDiscovery.class);
@@ -83,7 +81,7 @@ public class LGWebOSDiscovery extends AbstractDiscoveryService implements Discov
 
         DiscoveryManager manager = DiscoveryManager.getInstance();
         manager.setPairingLevel(DiscoveryManager.PairingLevel.ON);
-        manager.addListener(this);
+        // manager.addListener(this);
         discoveryManager = manager;
 
         super.activate(configProperties); // starts background discovery
@@ -92,10 +90,13 @@ public class LGWebOSDiscovery extends AbstractDiscoveryService implements Discov
     @Override
     protected void deactivate() {
         super.deactivate(); // stops background discovery
-        DiscoveryManager manager = discoveryManager;
-        if (manager != null) {
-            manager.removeListener(this);
-        }
+        /*
+         * DiscoveryManager manager = discoveryManager;
+         *
+         * if (manager != null) {
+         * manager.removeListener(this);
+         * }
+         */
         discoveryManager = null;
         DiscoveryManager.destroy();
         Util.uninit();
@@ -106,73 +107,88 @@ public class LGWebOSDiscovery extends AbstractDiscoveryService implements Discov
     protected void startScan() {
         // no adhoc scanning. Discovery Service runs in background, but re-discover all known devices in case they were
         // deleted from the inbox.
-        DiscoveryManager manager = discoveryManager;
-        if (manager != null) {
-            manager.getCompatibleDevices().values().forEach(device -> thingDiscovered(createDiscoveryResult(device)));
-        }
+        /*
+         * DiscoveryManager manager = discoveryManager;
+         * if (manager != null) {
+         * manager.getCompatibleDevices().values().forEach(device -> thingDiscovered(createDiscoveryResult(device)));
+         * }
+         */
     }
 
     @Override
     protected void startBackgroundDiscovery() {
-        DiscoveryManager manager = discoveryManager;
-        if (manager != null) {
-            manager.start();
-        }
+        /*
+         * DiscoveryManager manager = discoveryManager;
+         * if (manager != null) {
+         * manager.start();
+         * }
+         */
     }
 
     @Override
     protected void stopBackgroundDiscovery() {
-        DiscoveryManager manager = discoveryManager;
-        if (manager != null) {
-            manager.stop();
-        }
+        /*
+         * DiscoveryManager manager = discoveryManager;
+         * if (manager != null) {
+         * manager.stop();
+         * }
+         */
     }
 
     // DiscoveryManagerListener
 
-    @Override
-    public void onDeviceAdded(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
-        if (device == null) {
-            throw new IllegalArgumentException("ConnectableDevice must not be null");
-        }
-        thingDiscovered(createDiscoveryResult(device));
+    /*
+     * @Override
+     * public void onDeviceAdded(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
+     * if (device == null) {
+     * throw new IllegalArgumentException("ConnectableDevice must not be null");
+     * }
+     * thingDiscovered(createDiscoveryResult(device));
+     * }
+     */
+
+    void deviceDiscovered(String deviceId, String friendlyName, String ip) {
+
+        ThingUID thingUID = new ThingUID(THING_TYPE_WEBOSTV, deviceId);
+        this.thingDiscovered(DiscoveryResultBuilder.create(thingUID).withLabel(friendlyName)
+                .withProperty(PROPERTY_DEVICE_ID, deviceId).withRepresentationProperty(PROPERTY_DEVICE_ID).build());
     }
 
-    @Override
-    public void onDeviceUpdated(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
-        logger.debug("Device updated: {}", device);
-    }
+    /*
+     * @Override
+     * public void onDeviceUpdated(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
+     * logger.debug("Device updated: {}", device);
+     * }
+     *
+     * @Override
+     * public void onDeviceRemoved(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
+     * if (device == null) {
+     * throw new IllegalArgumentException("ConnectableDevice must not be null");
+     * }
+     * logger.debug("Device removed: {}", device);
+     * thingRemoved(createThingUID(device));
+     * }
+     *
+     * @Override
+     * public void onDiscoveryFailed(@Nullable DiscoveryManager manager, @Nullable ServiceCommandError error) {
+     * logger.warn("Discovery Failed {}", error == null ? "" : error.getMessage());
+     * }
+     *
+     * // Helpers for DiscoveryManagerListener Impl
+     * private DiscoveryResult createDiscoveryResult(ConnectableDevice device) {
+     * ThingUID thingUID = createThingUID(device);
+     * return DiscoveryResultBuilder.create(thingUID).withLabel(device.getFriendlyName())
+     * .withProperty(PROPERTY_DEVICE_ID, device.getId()).withRepresentationProperty(PROPERTY_DEVICE_ID)
+     * .build();
+     * }
+     *
+     *
+     * private ThingUID createThingUID(ConnectableDevice device) {
+     * return new ThingUID(THING_TYPE_WEBOSTV, device.getId());
+     * }
+     */
 
-    @Override
-    public void onDeviceRemoved(@Nullable DiscoveryManager manager, @Nullable ConnectableDevice device) {
-        if (device == null) {
-            throw new IllegalArgumentException("ConnectableDevice must not be null");
-        }
-        logger.debug("Device removed: {}", device);
-        thingRemoved(createThingUID(device));
-    }
-
-    @Override
-    public void onDiscoveryFailed(@Nullable DiscoveryManager manager, @Nullable ServiceCommandError error) {
-        logger.warn("Discovery Failed {}", error == null ? "" : error.getMessage());
-    }
-
-    // Helpers for DiscoveryManagerListener Impl
-    private DiscoveryResult createDiscoveryResult(ConnectableDevice device) {
-        ThingUID thingUID = createThingUID(device);
-        return DiscoveryResultBuilder.create(thingUID).withLabel(device.getFriendlyName())
-                .withProperty(PROPERTY_DEVICE_ID, device.getId()).withRepresentationProperty(PROPERTY_DEVICE_ID)
-                .build();
-    }
-
-    private ThingUID createThingUID(ConnectableDevice device) {
-        return new ThingUID(THING_TYPE_WEBOSTV, device.getId());
-    }
-
-    public @Nullable DiscoveryManager getDiscoveryManager() {
-        return this.discoveryManager;
-    }
-
+    // Context Implementation
     @Override
     public String getDataDir() {
         return ConfigConstants.getUserDataFolder() + File.separator + "lgwebos";

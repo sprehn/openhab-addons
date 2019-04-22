@@ -41,7 +41,6 @@ import org.openhab.binding.lgwebos.internal.TVControlChannelName;
 import org.openhab.binding.lgwebos.internal.ToastControlToast;
 import org.openhab.binding.lgwebos.internal.VolumeControlMute;
 import org.openhab.binding.lgwebos.internal.VolumeControlVolume;
-import org.openhab.binding.lgwebos.internal.discovery.LGWebOSUpnpDiscoveryParticipant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,6 @@ import com.connectsdk.service.command.ServiceCommandError;
 public class LGWebOSHandler extends BaseThingHandler implements ConnectableDeviceListener, DiscoveryManagerListener {
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSHandler.class);
-    private final LGWebOSUpnpDiscoveryParticipant discovery;
 
     // ChannelID to CommandHandler Map
     private final Map<String, ChannelHandler> channelHandlers;
@@ -70,9 +68,8 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
 
     private LauncherApplication appLauncher = new LauncherApplication();
 
-    public LGWebOSHandler(@NonNull Thing thing, LGWebOSUpnpDiscoveryParticipant discovery) {
+    public LGWebOSHandler(@NonNull Thing thing) {
         super(thing);
-        this.discovery = discovery;
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
         handlers.put(CHANNEL_POWER, new PowerControlPower());
@@ -109,13 +106,15 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
     }
 
     public Optional<ConnectableDevice> getDevice() {
-        return discovery.getCompatibleDevices().values().stream().filter(device -> deviceId.equals(device.getId()))
-                .findFirst();
+        return Optional.empty();
+        // TODO: we need to establish the websocket connection from this class
+        // return discovery.getCompatibleDevices().values().stream().filter(device -> deviceId.equals(device.getId()))
+        // .findFirst();
     }
 
     @Override
     public void initialize() {
-        discovery.addListener(this);
+        // discovery.addListener(this);
         deviceId = getConfig().get(PROPERTY_DEVICE_ID).toString();
 
         Optional<ConnectableDevice> deviceOpt = getDevice();
@@ -140,7 +139,7 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
     public void dispose() {
         super.dispose();
         getDevice().ifPresent(device -> device.removeListener(this));
-        discovery.removeListener(this);
+        // discovery.removeListener(this);
     }
     // Connectable Device Listener
 
