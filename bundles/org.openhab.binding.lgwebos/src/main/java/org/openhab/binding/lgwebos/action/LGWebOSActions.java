@@ -33,8 +33,6 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.binding.ThingActions;
 import org.eclipse.smarthome.core.thing.binding.ThingActionsScope;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
 import org.openhab.core.automation.annotation.ActionInput;
 import org.openhab.core.automation.annotation.RuleAction;
@@ -53,6 +51,9 @@ import com.connectsdk.service.capability.TextInputControl.TextInputStatusListene
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 /**
  * This is the automation engine action handler service for the
@@ -160,23 +161,25 @@ public class LGWebOSActions implements ThingActions {
     @RuleAction(label = "@text/actionLaunchApplicationWithParamsLabel", description = "@text/actionLaunchApplicationWithParamsDesc")
     public void launchApplication(
             @ActionInput(name = "appId", label = "@text/actionLaunchApplicationInputAppIDLabel", description = "@text/actionLaunchApplicationInputAppIDDesc") String appId,
-            @ActionInput(name = "params", label = "@text/actionLaunchApplicationInputParamsLabel", description = "@text/actionLaunchApplicationInputParamsDesc") Object params) {
-        JSONObject parameters;
+            @ActionInput(name = "params", label = "@text/actionLaunchApplicationInputParamsLabel", description = "@text/actionLaunchApplicationInputParamsDesc") String params) {
+
         try {
-            parameters = new JSONObject(params);
-        } catch (JSONException ex) {
+            JsonParser parser = new JsonParser();
+            JsonObject payload = (JsonObject) parser.parse(params);
+
+            List<AppInfo> appInfos = getAppInfos();
+            getControl(Launcher.class).ifPresent(control -> {
+                Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(appId)).findFirst();
+                if (appInfo.isPresent()) {
+                    control.launchAppWithInfo(appInfo.get(), payload, createResponseListener());
+                } else {
+                    logger.warn("TV does not support any app with id: {}.", appId);
+                }
+            });
+        } catch (JsonParseException ex) {
             logger.warn("Parameters value ({}) is not in a valid JSON format. {}", params, ex.getMessage());
             return;
         }
-        List<AppInfo> appInfos = getAppInfos();
-        getControl(Launcher.class).ifPresent(control -> {
-            Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(appId)).findFirst();
-            if (appInfo.isPresent()) {
-                control.launchAppWithInfo(appInfo.get(), parameters, createResponseListener());
-            } else {
-                logger.warn("TV does not support any app with id: {}.", appId);
-            }
-        });
     }
 
     @RuleAction(label = "@text/actionSendTextLabel", description = "@text/actionSendTextDesc")

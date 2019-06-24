@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -68,8 +69,11 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
 
     private LauncherApplication appLauncher = new LauncherApplication();
 
-    public LGWebOSHandler(@NonNull Thing thing) {
+    public LGWebOSHandler(@NonNull Thing thing, WebSocketClient webSocketClient) {
         super(thing);
+
+        WebOSTVSocket socket = new WebOSTVSocket(webSocketClient, this, thing.getProperties().get(PROPERTY_DEVICE_IP));
+
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
         handlers.put(CHANNEL_POWER, new PowerControlPower());
@@ -110,6 +114,14 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
         // TODO: we need to establish the websocket connection from this class
         // return discovery.getCompatibleDevices().values().stream().filter(device -> deviceId.equals(device.getId()))
         // .findFirst();
+    }
+
+    public String getKey() {
+        return getConfig().get(PROPERTY_DEVICE_KEY).toString();
+    }
+
+    public void setKey(String key) {
+        getConfig().put(PROPERTY_DEVICE_KEY, key);
     }
 
     @Override

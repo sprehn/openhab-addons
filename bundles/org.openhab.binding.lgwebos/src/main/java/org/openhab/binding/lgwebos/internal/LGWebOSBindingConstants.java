@@ -37,7 +37,9 @@ public class LGWebOSBindingConstants {
     public static final String BINDING_CONFIGURATION_LOCALIP = "localIP";
 
     public static final String PROPERTY_DEVICE_ID = "deviceId";
+    public static final String PROPERTY_DEVICE_IP = "ipAddress";
     public static final String PROPERTY_DEVICE_HOST = "deviceHost";
+    public static final String PROPERTY_DEVICE_KEY = "key";
     // List of all Channel ids. Values have to match ids in thing-types.xml
     public static final String CHANNEL_VOLUME = "volume";
     public static final String CHANNEL_POWER = "power";

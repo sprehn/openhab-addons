@@ -30,6 +30,7 @@
           <property name="manufacturer" />       
           <property name="lastConnected" />  
           <property name="lastDetection" />  
+          <property name="key" />
         </properties>
 		<representation-property>deviceId</representation-property>
 		
