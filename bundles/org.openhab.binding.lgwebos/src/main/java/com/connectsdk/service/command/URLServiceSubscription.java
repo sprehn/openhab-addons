@@ -22,26 +22,30 @@ package com.connectsdk.service.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 /**
- * Internal implementation of ServiceSubscription for URL-based commands
+ * Internal implementation of ServiceSubscription for URL-based commands.
  */
-public class URLServiceSubscription<T extends ResponseListener<?>> extends ServiceCommand<T>
+public class URLServiceSubscription<X, T extends ResponseListener<X>> extends ServiceCommand<X, T>
         implements ServiceSubscription<T> {
     private List<T> listeners = new ArrayList<T>();
 
-    public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JsonElement payload, T listener) {
-        super(processor, uri, payload, listener);
-    }
+    /*
+     * public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JsonObject payload,
+     * Function<JsonObject, X> converter, T listener) {
+     * super(processor, uri, payload, converter, listener);
+     * }
+     */
 
-    public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JsonElement payload, boolean isWebOS,
-            T listener) {
-        super(processor, uri, payload, isWebOS, listener);
+    public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JsonObject payload, boolean isWebOS,
+            Function<JsonObject, X> converter, T listener) {
+        super(processor, uri, payload, isWebOS, converter, listener);
 
-        httpMethod = TYPE_SUB;
+        type = TYPE_SUB;
     }
 
     @Override
@@ -50,8 +54,8 @@ public class URLServiceSubscription<T extends ResponseListener<?>> extends Servi
     }
 
     public void subscribe() {
-        if (!(httpMethod.equalsIgnoreCase(TYPE_GET) || httpMethod.equalsIgnoreCase(TYPE_POST))) {
-            httpMethod = TYPE_SUB;
+        if (!(type.equalsIgnoreCase(TYPE_GET) || type.equalsIgnoreCase(TYPE_POST))) {
+            type = TYPE_SUB;
         }
         processor.sendCommand(this);
     }

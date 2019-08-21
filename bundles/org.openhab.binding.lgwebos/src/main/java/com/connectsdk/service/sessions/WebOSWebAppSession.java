@@ -26,6 +26,8 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket.WebOSTVSocketListener;
 
 import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.Log;
@@ -33,7 +35,6 @@ import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.SubtitleInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
@@ -44,8 +45,6 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
-import com.connectsdk.service.webos.WebOSTVServiceSocketClient;
-import com.connectsdk.service.webos.WebOSTVServiceSocketClient.WebOSTVServiceSocketClientListener;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -57,14 +56,14 @@ public class WebOSWebAppSession extends WebAppSession {
 
     protected WebOSTVService service;
 
-    ResponseListener<ServiceCommand<ResponseListener<Object>>> mConnectionListener;
+    ResponseListener<ServiceCommand<Object, ResponseListener<Object>>> mConnectionListener;
 
-    public WebOSTVServiceSocketClient socket;
-    public URLServiceSubscription<ResponseListener<JsonObject>> appToAppSubscription;
+    public WebOSTVSocket socket;
+    public URLServiceSubscription<JsonObject, ResponseListener<JsonObject>> appToAppSubscription;
 
     private ServiceSubscription<PlayStateListener> mPlayStateSubscription;
     private ServiceSubscription<MessageListener> mMessageSubscription;
-    private ConcurrentHashMap<String, ServiceCommand<?>> mActiveCommands;
+    private ConcurrentHashMap<String, ServiceCommand<?, ?>> mActiveCommands;
 
     private ServiceSubscription<WebAppPinStatusListener> mWebAppPinnedSubscription;
 
@@ -77,7 +76,7 @@ public class WebOSWebAppSession extends WebAppSession {
         super(launchSession, service);
 
         UID = 0;
-        mActiveCommands = new ConcurrentHashMap<String, ServiceCommand<?>>(0, 0.75f, 10);
+        mActiveCommands = new ConcurrentHashMap<String, ServiceCommand<?, ?>>(0, 0.75f, 10);
         connected = false;
 
         this.service = (WebOSTVService) service;
@@ -159,11 +158,7 @@ public class WebOSWebAppSession extends WebAppSession {
         mFullAppId = fullAppId;
     }
 
-    private WebOSTVServiceSocketClientListener mSocketListener = new WebOSTVServiceSocketClientListener() {
-
-        @Override
-        public void onRegistrationFailed(ServiceCommandError error) {
-        }
+    private WebOSTVSocketListener mSocketListener = new WebOSTVSocketListener() {
 
         @Override
         public Boolean onReceiveMessage(JsonObject payload) {
@@ -265,9 +260,6 @@ public class WebOSWebAppSession extends WebAppSession {
             mConnectionListener = null;
         }
 
-        @Override
-        public void onBeforeRegister(PairingType pairingType) {
-        }
     };
 
     @SuppressWarnings("unchecked")
@@ -278,7 +270,7 @@ public class WebOSWebAppSession extends WebAppSession {
         }
         String requestID = payload.get("requestId").getAsString();
 
-        final ServiceCommand<ResponseListener<JsonObject>> command = (ServiceCommand<ResponseListener<JsonObject>>) mActiveCommands
+        final ServiceCommand<JsonObject, ResponseListener<JsonObject>> command = (ServiceCommand<JsonObject, ResponseListener<JsonObject>>) mActiveCommands
                 .get(requestID);
 
         if (command == null) {
@@ -334,7 +326,7 @@ public class WebOSWebAppSession extends WebAppSession {
     }
 
     private void connect(final Boolean joinOnly, final ResponseListener<Object> connectionListener) {
-        if (socket != null && socket.getState() == WebOSTVServiceSocketClient.State.CONNECTING) {
+        if (socket != null && socket.getState() == WebOSTVSocket.State.CONNECTING) {
             if (connectionListener != null) {
                 connectionListener.onError(new ServiceCommandError(
                         "You have a connection request pending,  please wait until it has finished"));
@@ -351,7 +343,7 @@ public class WebOSWebAppSession extends WebAppSession {
             return;
         }
 
-        mConnectionListener = new ResponseListener<ServiceCommand<ResponseListener<Object>>>() {
+        mConnectionListener = new ResponseListener<ServiceCommand<Object, ResponseListener<Object>>>() {
 
             @Override
             public void onError(ServiceCommandError error) {
@@ -369,7 +361,7 @@ public class WebOSWebAppSession extends WebAppSession {
             }
 
             @Override
-            public void onSuccess(ServiceCommand<ResponseListener<Object>> object) {
+            public void onSuccess(ServiceCommand<Object, ResponseListener<Object>> object) {
                 ResponseListener<Object> finalConnectionListener = new ResponseListener<Object>() {
 
                     @Override
@@ -402,7 +394,9 @@ public class WebOSWebAppSession extends WebAppSession {
                 socket.connect();
             }
         } else {
-            socket = new WebOSTVServiceSocketClient(service, WebOSTVServiceSocketClient.getURI(service));
+
+            // TODO: cant we reference socekt, instead of creating it here.
+            // socket = new WebOSTVSocket(service, this.service, service.getServiceDescription().getIpAddress());
             socket.setListener(mSocketListener);
             socket.connect();
         }
@@ -454,7 +448,7 @@ public class WebOSWebAppSession extends WebAppSession {
         _payload.add("payload", message);
 
         if (isConnected()) {
-            socket.sendMessage(_payload, null);
+            socket.sendMessage(_payload);
 
             Util.postSuccess(listener, null);
         } else {
@@ -537,8 +531,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null,
-                null, listener);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<Object, ResponseListener<Object>>(
+                null, null, null, true, x -> x, listener);
 
         mActiveCommands.put(requestId, command);
 
@@ -557,8 +551,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<JsonObject>> command = new ServiceCommand<ResponseListener<JsonObject>>(null,
-                null, null, new ResponseListener<JsonObject>() {
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> command = new ServiceCommand<>(null, null, null, true,
+                x -> x, new ResponseListener<JsonObject>() {
 
                     @Override
                     public void onSuccess(JsonObject jsonObj) {
@@ -598,8 +592,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<JsonObject>> command = new ServiceCommand<ResponseListener<JsonObject>>(null,
-                null, null, new ResponseListener<JsonObject>() {
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> command = new ServiceCommand<>(null, null, null, true,
+                x -> x, new ResponseListener<JsonObject>() {
 
                     @Override
                     public void onSuccess(JsonObject jsonObj) {
@@ -640,8 +634,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         payload.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<JsonObject>> command = new ServiceCommand<ResponseListener<JsonObject>>(null,
-                null, null, new ResponseListener<JsonObject>() {
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> command = new ServiceCommand<>(null, null, null, true,
+                x -> x, new ResponseListener<JsonObject>() {
 
                     @Override
                     public void onSuccess(JsonObject response) {
@@ -675,7 +669,8 @@ public class WebOSWebAppSession extends WebAppSession {
     @Override
     public ServiceSubscription<PlayStateListener> subscribePlayState(final PlayStateListener listener) {
         if (mPlayStateSubscription == null) {
-            mPlayStateSubscription = new URLServiceSubscription<MediaControl.PlayStateListener>(null, null, null, null);
+            mPlayStateSubscription = new URLServiceSubscription<PlayStateStatus, MediaControl.PlayStateListener>(null,
+                    null, null, true, x -> null, null);
         }
 
         if (!connected) {
@@ -690,10 +685,6 @@ public class WebOSWebAppSession extends WebAppSession {
                 public void onSuccess(Object response) {
                 }
             });
-        }
-
-        if (!mPlayStateSubscription.getListeners().contains(listener)) {
-            mPlayStateSubscription.addListener(listener);
         }
 
         return mPlayStateSubscription;
@@ -755,8 +746,8 @@ public class WebOSWebAppSession extends WebAppSession {
             }
         };
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(socket, null,
-                null, response);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<>(this.service, null, null, true,
+                x -> x, response);
 
         mActiveCommands.put(requestId, command);
 
@@ -828,8 +819,8 @@ public class WebOSWebAppSession extends WebAppSession {
             }
         };
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null,
-                null, response);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<Object, ResponseListener<Object>>(
+                null, null, null, true, x -> x, response);
 
         mActiveCommands.put(requestId, command);
 
@@ -907,8 +898,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("index", (int) index);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null,
-                null, listener);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<Object, ResponseListener<Object>>(
+                null, null, null, true, x -> x, listener);
         mActiveCommands.put(requestId, command);
         sendMessage(message, listener);
     }
@@ -925,8 +916,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null,
-                null, listener);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<Object, ResponseListener<Object>>(
+                null, null, null, true, x -> x, listener);
         mActiveCommands.put(requestId, command);
         sendMessage(message, listener);
     }
@@ -943,8 +934,8 @@ public class WebOSWebAppSession extends WebAppSession {
         payload.addProperty("requestId", requestId);
         message.add("mediaCommand", payload);
 
-        ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null,
-                null, listener);
+        ServiceCommand<Object, ResponseListener<Object>> command = new ServiceCommand<Object, ResponseListener<Object>>(
+                null, null, null, true, x -> x, listener);
         mActiveCommands.put(requestId, command);
         sendMessage(message, listener);
     }

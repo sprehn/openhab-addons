@@ -35,7 +35,6 @@ import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.DeviceServiceListener;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.capability.CapabilityMethods;
 import com.connectsdk.service.capability.CapabilityMethods.CapabilityPriorityLevel;
 import com.connectsdk.service.command.ServiceCommandError;
@@ -144,15 +143,6 @@ public class ConnectableDevice implements DeviceServiceListener {
         this.serviceDescription = serviceDescription;
     }
     // @endcond
-
-    /**
-     * Set desirable pairing type for all services.
-     *
-     * @param pairingType the pairing type
-     */
-    public void setPairingType(PairingType pairingType) {
-        getServices().forEach(s -> s.setPairingType(pairingType));
-    }
 
     /**
      * Adds a DeviceService to the ConnectableDevice instance. Only one instance of each DeviceService type (webOS,
@@ -333,23 +323,6 @@ public class ConnectableDevice implements DeviceServiceListener {
         return services.values().stream().anyMatch(s -> s.isConnectable());
     }
 
-    /**
-     * Sends a pairing key to all discovered device services.
-     *
-     * @param pairingKey Pairing key to send to services.
-     */
-    public void sendPairingKey(String pairingKey) {
-        services.values().forEach(s -> s.sendPairingKey(pairingKey));
-    }
-
-    /**
-     * Explicitly cancels pairing on all services that require pairing. In some services, this will hide a prompt that
-     * is displaying on the device.
-     */
-    public void cancelPairing() {
-        services.values().forEach(s -> s.cancelPairing());
-    }
-
     /** @return A combined list of all capabilities that are supported among the detected DeviceServices. */
     public synchronized List<String> getCapabilities() {
         List<String> caps = new ArrayList<String>();
@@ -425,7 +398,7 @@ public class ConnectableDevice implements DeviceServiceListener {
      * capability then returns null.
      *
      * @param controllerClass type of capability
-     * @param <T>             a capability methods class
+     * @param <T> a capability methods class
      * @return capability implementation
      */
     public <T extends CapabilityMethods> T getCapability(Class<T> controllerClass) {
@@ -657,10 +630,6 @@ public class ConnectableDevice implements DeviceServiceListener {
     }
 
     @Override
-    public void onConnectionRequired(DeviceService service) {
-    }
-
-    @Override
     public void onConnectionSuccess(DeviceService service) {
         // TODO: iOS is passing to a function for when each service is ready on a device. This is not implemented on
         // Android.
@@ -694,11 +663,6 @@ public class ConnectableDevice implements DeviceServiceListener {
     public void onPairingFailed(DeviceService service, Error error) {
         listeners.forEach(l -> l.onConnectionFailed(this,
                 new ServiceCommandError("Failed to pair with service " + service.getServiceName())));
-    }
-
-    @Override
-    public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) {
-        listeners.forEach(l -> l.onPairingRequired(this, service, pairingType));
     }
 
     @Override

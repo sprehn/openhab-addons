@@ -20,13 +20,17 @@
 
 package com.connectsdk.service.command;
 
+import java.util.function.Function;
+
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 /**
  * Internal implementation of ServiceCommand for URL-based commands
+ * T is a response listener for a functional type X.
  */
-public class ServiceCommand<T extends ResponseListener<?>> {
+public class ServiceCommand<X, T extends ResponseListener<X>> {
     // public static final String TYPE_REQ = "request";
     public static final String TYPE_SUB = "subscribe";
     public static final String TYPE_GET = "GET";
@@ -35,30 +39,25 @@ public class ServiceCommand<T extends ResponseListener<?>> {
     // public static final String TYPE_PUT = "PUT";
 
     protected ServiceCommandProcessor processor;
-    protected String httpMethod; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
-    protected Object payload;
+    protected String type; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
+    protected JsonObject payload;
     protected String target;
+    protected Function<JsonObject, X> converter;
 
     int requestId;
 
     T responseListener;
 
-    public ServiceCommand(ServiceCommandProcessor processor, String targetURL, Object payload, T listener) {
+    public ServiceCommand(ServiceCommandProcessor processor, String targetURL, JsonObject payload, boolean isWebOS,
+            Function<JsonObject, X> converter, T listener) {
         this.processor = processor;
         this.target = targetURL;
         this.payload = payload;
+        this.converter = converter;
         this.responseListener = listener;
-        this.httpMethod = TYPE_POST;
-    }
-
-    public ServiceCommand(ServiceCommandProcessor processor, String targetURL, JsonElement payload, boolean isWebOS,
-            T listener) {
-        this.processor = processor;
-        this.target = targetURL;
-        this.payload = payload;
+        this.type = "request";
         requestId = -1;
-        httpMethod = "request";
-        responseListener = listener;
+
     }
 
     public void send() {
@@ -69,40 +68,24 @@ public class ServiceCommand<T extends ResponseListener<?>> {
         return processor;
     }
 
-    public void setCommandProcessor(ServiceCommandProcessor processor) {
-        this.processor = processor;
-    }
-
-    public Object getPayload() {
+    public JsonElement getPayload() {
         return payload;
     }
 
-    public void setPayload(Object payload) {
-        this.payload = payload;
-    }
-
-    public String getHttpMethod() {
-        return httpMethod;
-    }
-
-    public void setHttpMethod(String httpMethod) {
-        this.httpMethod = httpMethod;
+    public String getType() {
+        return type;
     }
 
     public String getTarget() {
         return target;
     }
 
-    public void setTarget(String target) {
-        this.target = target;
+    public void processResponse(JsonObject response) {
+        this.getResponseListener().onSuccess(this.converter.apply(response));
     }
 
-    public int getRequestId() {
-        return requestId;
-    }
-
-    public void setRequestId(int requestId) {
-        this.requestId = requestId;
+    public void processError(String error) {
+        this.getResponseListener().onError(new ServiceCommandError(error));
     }
 
     public T getResponseListener() {
@@ -110,10 +93,10 @@ public class ServiceCommand<T extends ResponseListener<?>> {
     }
 
     public interface ServiceCommandProcessor {
-        public void unsubscribe(URLServiceSubscription<?> subscription);
+        public void unsubscribe(URLServiceSubscription<?, ?> subscription);
 
         public void unsubscribe(ServiceSubscription<?> subscription);
 
-        public void sendCommand(ServiceCommand<?> command);
+        public void sendCommand(ServiceCommand<?, ?> command);
     }
 }

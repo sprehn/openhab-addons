@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.connectsdk.core.TextInputStatusInfo;
-import com.connectsdk.core.Util;
 import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.capability.TextInputControl.TextInputStatusListener;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -112,46 +111,36 @@ public class WebOSTVKeyboardInput {
 
         }
 
-        ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-
-            @Override
-            public void onSuccess(Object response) {
-                waiting = false;
-                if (toSend.size() > 0) {
-                    sendData();
-                }
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                waiting = false;
-                if (toSend.size() > 0) {
-                    sendData();
-                }
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(service,
-                uri, payload, true, responseListener);
-        request.send();
-    }
-
-    public URLServiceSubscription<TextInputStatusListener> connect(final TextInputStatusListener listener) {
         ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
 
             @Override
             public void onSuccess(JsonObject response) {
-                Util.postSuccess(listener, parseRawKeyboardData(response));
+                waiting = false;
+                if (toSend.size() > 0) {
+                    sendData();
+                }
             }
 
             @Override
             public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
+                waiting = false;
+                if (toSend.size() > 0) {
+                    sendData();
+                }
             }
         };
 
-        URLServiceSubscription<TextInputStatusListener> subscription = new URLServiceSubscription<TextInputStatusListener>(
-                service, KEYBOARD_INPUT, null, true, responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(service, uri, payload,
+                true, x -> x, responseListener);
+        request.send();
+    }
+
+    public URLServiceSubscription<TextInputStatusInfo, TextInputStatusListener> connect(
+            final TextInputStatusListener listener) {
+        JsonObject response = null;
+
+        URLServiceSubscription<TextInputStatusInfo, TextInputStatusListener> subscription = new URLServiceSubscription<>(
+                service, KEYBOARD_INPUT, null, true, rawData -> parseRawKeyboardData(rawData), listener);
         subscription.send();
 
         return subscription;

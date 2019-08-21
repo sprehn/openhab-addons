@@ -38,6 +38,7 @@ import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.WebOSTVServiceConfig;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 public class WebOSTVServiceSocketClient extends WebSocketClient implements ServiceCommandProcessor {
@@ -68,9 +69,9 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
     static final int PORT = 3001;
 
     // Queue of commands that should be sent once register is complete
-    LinkedHashSet<ServiceCommand<ResponseListener<Object>>> commandQueue = new LinkedHashSet<ServiceCommand<ResponseListener<Object>>>();
+    LinkedHashSet<ServiceCommand<ResponseListener<Object>>> commandQueue = new LinkedHashSet<>();
 
-    private HashMap<Integer, ServiceCommand<? extends Object>> requests = new HashMap<Integer, ServiceCommand<? extends Object>>();
+    private HashMap<Integer, ServiceCommand<? extends Object>> requests = new HashMap<>();
 
     boolean mConnectSucceeded = false;
 
@@ -148,23 +149,15 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
     private void setDefaultManifest() {
         manifest = new JsonObject();
         List<String> permissions = mService.getPermissions();
-
-        try {
-            manifest.put("manifestVersion", 1);
-            // manifest.put("appId", 1);
-            // manifest.put("vendorId", 1);
-            // manifest.put("localizedAppNames", 1);
-            manifest.put("permissions", convertStringListToJSONArray(permissions));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        manifest.addProperty("manifestVersion", 1);
+        manifest.add("permissions", convertStringListToJSONArray(permissions));
     }
 
-    private JSONArray convertStringListToJSONArray(List<String> list) {
-        JSONArray jsonArray = new JSONArray();
+    private JsonArray convertStringListToJSONArray(List<String> list) {
+        JsonArray jsonArray = new JsonArray();
 
         for (String str : list) {
-            jsonArray.put(str);
+            jsonArray.add(str);
         }
 
         return jsonArray;
@@ -522,15 +515,11 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
         JsonObject headers = new JsonObject();
         JsonObject payload = new JsonObject();
 
-        try {
-            headers.put("type", "request");
-            headers.put("id", dataId);
-            headers.put("uri", uri);
+        headers.addProperty("type", "request");
+        headers.addProperty("id", dataId);
+        headers.addProperty("uri", uri);
 
-            payload.put("pin", pairingKey);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        payload.addProperty("pin", pairingKey);
 
         requests.put(dataId, command);
 
@@ -570,7 +559,7 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
 
     @Override
     @SuppressWarnings("unchecked")
-    public void sendCommand(ServiceCommand<?> command) {
+    public void sendCommand(ServiceCommand<?, ?> command) {
         Integer requestId;
         if (command.getRequestId() == -1) {
             requestId = this.nextRequestId++;

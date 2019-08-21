@@ -49,8 +49,6 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
-import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 
 /**
@@ -59,7 +57,8 @@ import com.connectsdk.service.command.ServiceCommandError;
  *
  * @author Sebastian Prehn - initial contribution
  */
-public class LGWebOSHandler extends BaseThingHandler implements ConnectableDeviceListener, DiscoveryManagerListener {
+public class LGWebOSHandler extends BaseThingHandler
+        implements ConnectableDeviceListener, DiscoveryManagerListener, WebOSTVStore {
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSHandler.class);
 
@@ -73,6 +72,7 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
         super(thing);
 
         WebOSTVSocket socket = new WebOSTVSocket(webSocketClient, this, thing.getProperties().get(PROPERTY_DEVICE_IP));
+        WebOSTVMouseSocket mouseSocket = new WebOSTVMouseSocket(webSocketClient);
 
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
@@ -116,12 +116,19 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
         // .findFirst();
     }
 
+    @Override
     public String getKey() {
         return getConfig().get(PROPERTY_DEVICE_KEY).toString();
     }
 
+    @Override
     public void setKey(String key) {
         getConfig().put(PROPERTY_DEVICE_KEY, key);
+    }
+
+    @Override
+    public void setUUID(String uuid) {
+        getConfig().put(PROPERTY_DEVICE_KEY, uuid);
     }
 
     @Override
@@ -170,11 +177,6 @@ public class LGWebOSHandler extends BaseThingHandler implements ConnectableDevic
             e.getValue().removeAnySubscription(device);
         }
         updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
-    }
-
-    @Override
-    public void onPairingRequired(ConnectableDevice device, DeviceService service, PairingType pairingType) {
-        updateStatus(thing.getStatus(), ThingStatusDetail.CONFIGURATION_PENDING, "Pairing Required");
     }
 
     @Override

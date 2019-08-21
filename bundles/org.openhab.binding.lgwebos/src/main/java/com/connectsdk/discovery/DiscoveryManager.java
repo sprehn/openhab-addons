@@ -39,7 +39,6 @@ import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
@@ -755,10 +754,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
     @Override
     public void onDeviceReady(ConnectableDevice device) {
-    }
-
-    @Override
-    public void onPairingRequired(ConnectableDevice device, DeviceService service, PairingType pairingType) {
     }
 
     @Override

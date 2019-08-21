@@ -20,6 +20,8 @@
 
 package com.connectsdk.service;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -27,8 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVMouseSocket;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
@@ -59,7 +64,6 @@ import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
@@ -73,9 +77,6 @@ import com.connectsdk.service.sessions.WebAppSession;
 import com.connectsdk.service.sessions.WebAppSession.WebAppPinStatusListener;
 import com.connectsdk.service.sessions.WebOSWebAppSession;
 import com.connectsdk.service.webos.WebOSTVKeyboardInput;
-import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
-import com.connectsdk.service.webos.WebOSTVServiceSocketClient;
-import com.connectsdk.service.webos.WebOSTVServiceSocketClient.WebOSTVServiceSocketClientListener;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -147,12 +148,14 @@ public class WebOSTVService extends DeviceService
     static String CHANNEL_LIST = "ssap://tv/getChannelList";
     static String CHANNEL = "ssap://tv/getCurrentChannel";
     static String PROGRAM = "ssap://tv/getChannelProgramInfo";
+    static String CURRENT_PROGRAM = "ssap://tv/getChannelCurrentProgramInfo";
+    static String THREED_STATUS = "ssap://com.webos.service.tv.display/get3DStatus";
 
     static final String CLOSE_APP_URI = "ssap://system.launcher/close";
     static final String CLOSE_MEDIA_URI = "ssap://media.viewer/close";
     static final String CLOSE_WEBAPP_URI = "ssap://webapp/closeWebApp";
 
-    WebOSTVMouseSocketConnection mouseSocket;
+    WebOSTVMouseSocket mouseSocket;
 
     WebOSTVKeyboardInput keyboardInput;
 
@@ -160,7 +163,7 @@ public class WebOSTVService extends DeviceService
 
     ConcurrentHashMap<String, WebOSWebAppSession> mWebAppSessions;
 
-    WebOSTVServiceSocketClient socket;
+    WebOSTVSocket socket;
 
     List<String> permissions;
 
@@ -168,15 +171,8 @@ public class WebOSTVService extends DeviceService
         super(serviceDescription, serviceConfig);
         setServiceDescription(serviceDescription);
 
-        pairingType = PairingType.FIRST_SCREEN;
-
         mAppToAppIdMappings = new ConcurrentHashMap<String, String>();
         mWebAppSessions = new ConcurrentHashMap<String, WebOSWebAppSession>();
-    }
-
-    @Override
-    public void setPairingType(PairingType pairingType) {
-        this.pairingType = pairingType;
     }
 
     @Override
@@ -249,45 +245,17 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public boolean isConnected() {
-        if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-            return this.socket != null && this.socket.isConnected()
-                    && (((WebOSTVServiceConfig) serviceConfig).getClientKey() != null);
-        } else {
-            return this.socket != null && this.socket.isConnected();
-        }
+        return this.socket.isConnected();
     }
 
     @Override
     public void connect() {
-        if (this.socket == null) {
-            this.socket = new WebOSTVServiceSocketClient(this, WebOSTVServiceSocketClient.getURI(this));
-            this.socket.setListener(mSocketListener);
-        }
-
-        if (!this.isConnected()) {
-            this.socket.connect();
-        }
+        this.socket.connect();
     }
 
     @Override
     public void disconnect() {
-        Log.d(Util.T, "attempting to disconnect to " + serviceDescription.getIpAddress());
-
-        Util.run(new Runnable() {
-
-            @Override
-            public void run() {
-                if (listener != null) {
-                    listener.onDisconnect(WebOSTVService.this, null);
-                }
-            }
-        });
-
-        if (socket != null) {
-            socket.setListener(null);
-            socket.disconnect();
-            socket = null;
-        }
+        this.socket.disconnect();
 
         if (mAppToAppIdMappings != null) {
             mAppToAppIdMappings.clear();
@@ -304,90 +272,6 @@ public class WebOSTVService extends DeviceService
             mWebAppSessions.clear();
         }
     }
-
-    @Override
-    public void cancelPairing() {
-        if (this.socket != null) {
-            this.socket.disconnect();
-        }
-    }
-
-    private WebOSTVServiceSocketClientListener mSocketListener = new WebOSTVServiceSocketClientListener() {
-
-        @Override
-        public void onRegistrationFailed(final ServiceCommandError error) {
-            disconnect();
-
-            Util.run(new Runnable() {
-
-                @Override
-                public void run() {
-                    if (listener != null) {
-                        listener.onConnectionFailure(WebOSTVService.this, error);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public Boolean onReceiveMessage(JsonObject message) {
-            return true;
-        }
-
-        @Override
-        public void onFailWithError(final ServiceCommandError error) {
-            socket.setListener(null);
-            socket.disconnect();
-            socket = null;
-
-            Util.run(new Runnable() {
-
-                @Override
-                public void run() {
-                    if (listener != null) {
-                        listener.onConnectionFailure(WebOSTVService.this, error);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onConnect() {
-            reportConnected(true);
-        }
-
-        @Override
-        public void onCloseWithError(final ServiceCommandError error) {
-            socket.setListener(null);
-            socket.disconnect();
-            socket = null;
-
-            Util.run(new Runnable() {
-
-                @Override
-                public void run() {
-                    if (listener != null) {
-                        listener.onDisconnect(WebOSTVService.this, error);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onBeforeRegister(final PairingType pairingType) {
-            if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-                Util.run(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        if (listener != null) {
-                            listener.onPairingRequired(WebOSTVService.this, pairingType, null);
-                        }
-                    }
-                });
-            }
-        }
-    };
 
     // @cond INTERNAL
 
@@ -451,12 +335,10 @@ public class WebOSTVService extends DeviceService
             @Override
             public void onSuccess(JsonObject obj) {
                 LaunchSession launchSession = new LaunchSession();
-
                 launchSession.setService(WebOSTVService.this);
                 launchSession.setAppId(appId); // note that response uses id to mean appId
                 launchSession.setSessionId(obj.get("sessionId").getAsString());
                 launchSession.setSessionType(LaunchSessionType.App);
-
                 Util.postSuccess(listener, launchSession);
             }
 
@@ -466,8 +348,8 @@ public class WebOSTVService extends DeviceService
             }
         };
 
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, payload, true,
-                responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, payload,
+                true, x -> x, responseListener);
         request.send();
     }
 
@@ -498,8 +380,8 @@ public class WebOSTVService extends DeviceService
 
         payload.addProperty("target", url);
 
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, payload, true, responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, payload,
+                true, x -> x, responseListener);
         request.send();
     }
 
@@ -592,8 +474,8 @@ public class WebOSTVService extends DeviceService
         payload.addProperty("id", appId);
         payload.addProperty("sessionId", sessionId);
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(
-                launchSession.getService(), uri, payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(launchSession.getService(), uri,
+                payload, true, x -> x, listener);
         request.send();
     }
 
@@ -630,104 +512,59 @@ public class WebOSTVService extends DeviceService
             }
         };
 
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, null, true,
+                x -> x, responseListener);
         request.send();
     }
 
-    private ServiceCommand<AppInfoListener> getRunningApp(boolean isSubscription, final AppInfoListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-
-                AppInfo app = new AppInfo() {
-                    {
-                        setId(jsonObj.get("appId").getAsString());
-                        setName(jsonObj.get("appName").getAsString());
-                        setRawData(jsonObj);
-                    }
-                };
-
-                Util.postSuccess(listener, app);
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, FOREGROUND_APP, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, FOREGROUND_APP, null, true,
-                    responseListener);
+    private static final Function<JsonObject, AppInfo> APP_INFO_CONVERTER = (jsonObj) -> new AppInfo() {
+        {
+            setId(jsonObj.get("appId").getAsString());
+            setName(jsonObj.get("appName").getAsString());
+            setRawData(jsonObj);
         }
-
-        request.send();
-
-        return request;
-    }
+    };
 
     @Override
     public void getRunningApp(AppInfoListener listener) {
-        getRunningApp(false, listener);
+        ServiceCommand<AppInfo, AppInfoListener> request = new ServiceCommand<>(this, FOREGROUND_APP, null, true,
+                APP_INFO_CONVERTER, listener);
+        request.send();
     }
 
     @Override
     public ServiceSubscription<AppInfoListener> subscribeRunningApp(AppInfoListener listener) {
-        return (URLServiceSubscription<AppInfoListener>) getRunningApp(true, listener);
+        URLServiceSubscription<AppInfo, AppInfoListener> request = new URLServiceSubscription<>(this, FOREGROUND_APP,
+                null, true, APP_INFO_CONVERTER, listener);
+        request.send();
+        return request;
+
     }
 
-    private ServiceCommand<AppStateListener> getAppState(boolean subscription, LaunchSession launchSession,
-            final AppStateListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-        JsonObject params = new JsonObject();
+    private static final Function<JsonObject, AppState> APP_STATE_CONVERTER = (jsonObj) -> new AppState(
+            jsonObj.get("running").getAsBoolean(), jsonObj.get("visible").getAsBoolean());
 
+    private JsonObject createAppStateParameter(LaunchSession launchSession) {
+        JsonObject params = new JsonObject();
         params.addProperty("id", launchSession.getAppId());
         params.addProperty("sessionId", launchSession.getSessionId());
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-
-            @Override
-            public void onSuccess(JsonObject json) {
-
-                Util.postSuccess(listener,
-                        new AppState(json.get("running").getAsBoolean(), json.get("visible").getAsBoolean()));
-
-            }
-        };
-
-        if (subscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, APP_STATE, params, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, APP_STATE, params, true, responseListener);
-        }
-
-        request.send();
-
-        return request;
+        return params;
     }
 
     @Override
     public void getAppState(LaunchSession launchSession, AppStateListener listener) {
-        getAppState(false, launchSession, listener);
+        ServiceCommand<AppState, AppStateListener> request = new ServiceCommand<>(this, APP_STATE,
+                createAppStateParameter(launchSession), true, APP_STATE_CONVERTER, listener);
+        request.send();
     }
 
     @Override
     public ServiceSubscription<AppStateListener> subscribeAppState(LaunchSession launchSession,
             AppStateListener listener) {
-        return (URLServiceSubscription<AppStateListener>) getAppState(true, launchSession, listener);
+        URLServiceSubscription<AppState, AppStateListener> request = new URLServiceSubscription<>(this, APP_STATE,
+                createAppStateParameter(launchSession), true, APP_STATE_CONVERTER, listener);
+        request.send();
+        return request;
     }
 
     /******************
@@ -818,9 +655,9 @@ public class WebOSTVService extends DeviceService
     }
 
     private void sendToast(JsonObject payload, ResponseListener<Object> listener) {
-        String uri = "palm://system.notifications/createToast";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
+        String uri = "ssap://system.notifications/createToast";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
     }
 
@@ -844,9 +681,8 @@ public class WebOSTVService extends DeviceService
     @Override
     public void volumeUp(ResponseListener<Object> listener) {
         String uri = "ssap://audio/volumeUp";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
@@ -857,8 +693,8 @@ public class WebOSTVService extends DeviceService
     @Override
     public void volumeDown(ResponseListener<Object> listener) {
         String uri = "ssap://audio/volumeDown";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
 
         request.send();
     }
@@ -873,52 +709,28 @@ public class WebOSTVService extends DeviceService
         JsonObject payload = new JsonObject();
         int intVolume = Math.round(volume * 100.0f);
         payload.addProperty("volume", intVolume);
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
     }
 
-    private ServiceCommand<ResponseListener<JsonObject>> getVolume(boolean isSubscription,
-            final VolumeListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                int iVolume = jsonObj.get("volume").getAsInt();
-                float fVolume = (float) (iVolume / 100.0);
-                Util.postSuccess(listener, fVolume);
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, VOLUME, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, VOLUME, null, true, responseListener);
-        }
-
-        request.send();
-
-        return request;
-    }
+    private static final Function<JsonObject, Float> VOLUME_CONVERTER = (
+            jsonObj) -> (float) (jsonObj.get("volume").getAsInt() / 100.0);
 
     @Override
     public void getVolume(VolumeListener listener) {
-        getVolume(false, listener);
+        ServiceCommand<Float, VolumeListener> request = new ServiceCommand<>(this, VOLUME, null, true, VOLUME_CONVERTER,
+                listener);
+        request.send();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public ServiceSubscription<VolumeListener> subscribeVolume(VolumeListener listener) {
-        return getVolume(true, listener);
 
+    public ServiceSubscription<VolumeListener> subscribeVolume(VolumeListener listener) {
+        URLServiceSubscription<Float, VolumeListener> request = new URLServiceSubscription<>(this, VOLUME, null, true,
+                VOLUME_CONVERTER, listener);
+        request.send();
+        return request;
     }
 
     @Override
@@ -927,92 +739,43 @@ public class WebOSTVService extends DeviceService
         JsonObject payload = new JsonObject();
         payload.addProperty("mute", isMute);
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
     }
 
-    private ServiceCommand<ResponseListener<JsonObject>> getMuteStatus(boolean isSubscription,
-            final MuteListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject response) {
-                Util.postSuccess(listener, response.get("mute").getAsBoolean());
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, MUTE, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, MUTE, null, true, responseListener);
-        }
-
-        request.send();
-
-        return request;
-    }
+    private Function<JsonObject, Boolean> MUTE_STATUS_CONVERTER = (jsonObj) -> jsonObj.get("mute").getAsBoolean();
 
     @Override
     public void getMute(MuteListener listener) {
-        getMuteStatus(false, listener);
+        ServiceCommand<Boolean, MuteListener> request = new ServiceCommand<>(this, MUTE, null, true,
+                MUTE_STATUS_CONVERTER, listener);
+        request.send();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+
     public ServiceSubscription<MuteListener> subscribeMute(MuteListener listener) {
-        return (ServiceSubscription<MuteListener>) getMuteStatus(true, listener);
-    }
-
-    private ServiceCommand<ResponseListener<JsonObject>> getVolumeStatus(boolean isSubscription,
-            final VolumeStatusListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                boolean isMute = jsonObj.get("mute").getAsBoolean();
-                int iVolume = jsonObj.get("volume").getAsInt();
-                float fVolume = (float) (iVolume / 100.0);
-                Util.postSuccess(listener, new VolumeStatus(isMute, fVolume));
-
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, VOLUME_STATUS, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, VOLUME_STATUS, null, true,
-                    responseListener);
-        }
-
+        URLServiceSubscription<Boolean, MuteListener> request = new URLServiceSubscription<>(this, MUTE, null, true,
+                MUTE_STATUS_CONVERTER, listener);
         request.send();
-
         return request;
     }
 
+    private Function<JsonObject, VolumeStatus> VOLUME_STATUS_CONVERTER = (jsonObj) -> new VolumeStatus(
+            jsonObj.get("mute").getAsBoolean(), jsonObj.get("volume").getAsInt() / 100);
+
     public void getVolumeStatus(VolumeStatusListener listener) {
-        getVolumeStatus(false, listener);
+        ServiceCommand<VolumeStatus, VolumeStatusListener> request = new ServiceCommand<>(this, VOLUME_STATUS, null,
+                true, VOLUME_STATUS_CONVERTER, listener);
+        request.send();
     }
 
-    @SuppressWarnings("unchecked")
     public ServiceSubscription<VolumeStatusListener> subscribeVolumeStatus(VolumeStatusListener listener) {
-        return (ServiceSubscription<VolumeStatusListener>) getVolumeStatus(true, listener);
+        URLServiceSubscription<VolumeStatus, VolumeStatusListener> request = new URLServiceSubscription<>(this,
+                VOLUME_STATUS, null, true, VOLUME_STATUS_CONVERTER, listener);
+        request.send();
+        return request;
     }
 
     /******************
@@ -1025,7 +788,7 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
-        return CapabilityPriorityLevel.HIGH;
+        return CapabilityPriorityLevel.HIGH; // TODO: remove
     }
 
     @Override
@@ -1062,8 +825,8 @@ public class WebOSTVService extends DeviceService
             }
         };
 
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, params, true, responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, params, true,
+                x -> x, responseListener);
         request.send();
     }
 
@@ -1078,6 +841,10 @@ public class WebOSTVService extends DeviceService
             params.addProperty("iconSrc", iconSrc);
             this.displayMedia(params, listener);
         } else {
+
+            final MediaInfo mediaInfo = new MediaInfo.Builder(url, mimeType).setTitle(title).setDescription(description)
+                    .setIcon(iconSrc).build();
+
             final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
 
                 @Override
@@ -1087,7 +854,7 @@ public class WebOSTVService extends DeviceService
 
                 @Override
                 public void onSuccess(WebAppSession webAppSession) {
-                    webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+                    webAppSession.displayImage(mediaInfo, listener);
                 }
             };
 
@@ -1100,7 +867,7 @@ public class WebOSTVService extends DeviceService
 
                 @Override
                 public void onSuccess(WebAppSession webAppSession) {
-                    webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+                    webAppSession.displayImage(mediaInfo, listener);
                 }
             });
         }
@@ -1214,8 +981,8 @@ public class WebOSTVService extends DeviceService
             payload.addProperty("sessionId", launchSession.getSessionId());
         }
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(
-                launchSession.getService(), CLOSE_MEDIA_URI, payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(launchSession.getService(),
+                CLOSE_MEDIA_URI, payload, true, x -> x, listener);
         request.send();
     }
 
@@ -1229,51 +996,46 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public CapabilityPriorityLevel getMediaControlCapabilityLevel() {
-        return CapabilityPriorityLevel.HIGH;
+        return CapabilityPriorityLevel.HIGH; // TODO: Remove this
     }
 
     @Override
     public void play(ResponseListener<Object> listener) {
         String uri = "ssap://media.controls/play";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
     @Override
     public void pause(ResponseListener<Object> listener) {
         String uri = "ssap://media.controls/pause";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
     @Override
     public void stop(ResponseListener<Object> listener) {
         String uri = "ssap://media.controls/stop";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
     @Override
     public void rewind(ResponseListener<Object> listener) {
         String uri = "ssap://media.controls/rewind";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
     @Override
     public void fastForward(ResponseListener<Object> listener) {
         String uri = "ssap://media.controls/fastForward";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
@@ -1317,228 +1079,107 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public CapabilityPriorityLevel getTVControlCapabilityLevel() {
-        return CapabilityPriorityLevel.HIGH;
-    }
-
-    public void channelUp() {
-        channelUp(null);
+        return CapabilityPriorityLevel.HIGH; // TODO: Remove
     }
 
     @Override
     public void channelUp(ResponseListener<Object> listener) {
         String uri = "ssap://tv/channelUp";
-
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
-    }
-
-    public void channelDown() {
-        channelDown(null);
     }
 
     @Override
     public void channelDown(ResponseListener<Object> listener) {
         String uri = "ssap://tv/channelDown";
-
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
-    /**
-     * Sets current channel
-     *
-     * @param channelInfo must not be null
-     * @param listener    the response listener
-     * @throws NullPointerException if channelInfo is null
-     */
     @Override
     public void setChannel(ChannelInfo channelInfo, ResponseListener<Object> listener) {
-        if (channelInfo == null) {
-            throw new NullPointerException("channelInfo must not be null");
-        }
-        String uri = "ssap://tv/openChannel";
         JsonObject payload = new JsonObject();
-
         if (channelInfo.getId() != null) {
             payload.addProperty("channelId", channelInfo.getId());
         }
         if (channelInfo.getNumber() != null) {
             payload.addProperty("channelNumber", channelInfo.getNumber());
         }
-
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
-        request.send();
-    }
-
-    public void setChannelById(String channelId) {
-        setChannelById(channelId, null);
+        setChannel(payload, listener);
     }
 
     public void setChannelById(String channelId, ResponseListener<Object> listener) {
-        String uri = "ssap://tv/openChannel";
         JsonObject payload = new JsonObject();
         payload.addProperty("channelId", channelId);
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
-        request.send();
+        setChannel(payload, listener);
     }
 
-    private ServiceCommand<ResponseListener<Object>> getCurrentChannel(boolean isSubscription,
-            final ChannelListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                Util.postSuccess(listener, parseRawChannelData(jsonObj));
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, CHANNEL, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, CHANNEL, null, true, responseListener);
-        }
-
+    private void setChannel(JsonObject payload, ResponseListener<Object> listener) {
+        String uri = "ssap://tv/openChannel";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
-
-        return request;
     }
 
     @Override
     public void getCurrentChannel(ChannelListener listener) {
-        getCurrentChannel(false, listener);
+        ServiceCommand<ChannelInfo, ChannelListener> request = new ServiceCommand<>(this, CHANNEL, null, true,
+                jsonObj -> parseRawChannelData(jsonObj), listener);
+        request.send();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+
     public ServiceSubscription<ChannelListener> subscribeCurrentChannel(ChannelListener listener) {
-        return (ServiceSubscription<ChannelListener>) getCurrentChannel(true, listener);
-    }
-
-    private ServiceCommand<ResponseListener<JsonObject>> getChannelList(boolean isSubscription,
-            final ChannelListListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                ArrayList<ChannelInfo> list = new ArrayList<ChannelInfo>();
-                JsonArray array = jsonObj.get("channelList").getAsJsonArray();
-                array.forEach(element -> list.add(parseRawChannelData(element.getAsJsonObject())));
-                Util.postSuccess(listener, list);
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, CHANNEL_LIST, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, CHANNEL_LIST, null, true,
-                    responseListener);
-        }
-
+        URLServiceSubscription<ChannelInfo, ChannelListener> request = new URLServiceSubscription<>(this, CHANNEL, null,
+                true, jsonObj -> parseRawChannelData(jsonObj), listener);
         request.send();
-
         return request;
     }
 
+    private final Function<JsonObject, List<ChannelInfo>> CHANNEL_LIST_CONVERTER = jsonObj -> {
+        List<ChannelInfo> list = new ArrayList<>();
+        JsonArray array = jsonObj.get("channelList").getAsJsonArray();
+        array.forEach(element -> list.add(parseRawChannelData(element.getAsJsonObject())));
+        return list;
+    };
+
     @Override
     public void getChannelList(ChannelListListener listener) {
-        getChannelList(false, listener);
-    }
-
-    @SuppressWarnings("unchecked")
-    public ServiceSubscription<ChannelListListener> subscribeChannelList(final ChannelListListener listener) {
-        return (ServiceSubscription<ChannelListListener>) getChannelList(true, listener);
-    }
-
-    private ServiceCommand<ResponseListener<JsonObject>> getChannelCurrentProgramInfo(boolean isSubscription,
-            final ProgramInfoListener listener) {
-        String uri = "ssap://tv/getChannelCurrentProgramInfo";
-
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                Util.postSuccess(listener, parseRawProgramInfo(jsonObj));
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, uri, null, true, responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, uri, null, true, responseListener);
-        }
-
+        ServiceCommand<List<ChannelInfo>, ChannelListListener> request = new ServiceCommand<>(this, CHANNEL_LIST, null,
+                true, CHANNEL_LIST_CONVERTER, listener);
         request.send();
+    }
 
+    // TODO: if this works it means channel list can be cached until this triggers
+    public ServiceSubscription<ChannelListListener> subscribeChannelList(final ChannelListListener listener) {
+        URLServiceSubscription<List<ChannelInfo>, ChannelListListener> request = new URLServiceSubscription<>(this,
+                CHANNEL_LIST, null, true, CHANNEL_LIST_CONVERTER, listener);
+        request.send();
         return request;
     }
 
     public void getChannelCurrentProgramInfo(ProgramInfoListener listener) {
-        getChannelCurrentProgramInfo(false, listener);
-    }
-
-    @SuppressWarnings("unchecked")
-    public ServiceSubscription<ProgramInfoListener> subscribeChannelCurrentProgramInfo(ProgramInfoListener listener) {
-        return (ServiceSubscription<ProgramInfoListener>) getChannelCurrentProgramInfo(true, listener);
-    }
-
-    private ServiceCommand<ResponseListener<JsonObject>> getProgramList(boolean isSubscription,
-            final ProgramListListener listener) {
-        ServiceCommand<ResponseListener<JsonObject>> request;
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                JsonObject jsonChannel = jsonObj.get("channel").getAsJsonObject();
-                ChannelInfo channel = parseRawChannelData(jsonChannel);
-                JsonArray programList = jsonObj.get("programList").getAsJsonArray();
-                Util.postSuccess(listener, new ProgramList(channel, programList));
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, PROGRAM, null, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, PROGRAM, null, true, responseListener);
-        }
-
+        ServiceCommand<ProgramInfo, ProgramInfoListener> request = new ServiceCommand<>(this, CURRENT_PROGRAM, null,
+                true, jsonObj -> parseRawProgramInfo(jsonObj), listener);
         request.send();
+    }
 
+    public ServiceSubscription<ProgramInfoListener> subscribeChannelCurrentProgramInfo(ProgramInfoListener listener) {
+        URLServiceSubscription<ProgramInfo, ProgramInfoListener> request = new URLServiceSubscription<>(this,
+                CURRENT_PROGRAM, null, true, jsonObj -> parseRawProgramInfo(jsonObj), listener);
+        request.send();
         return request;
     }
+
+    private final Function<JsonObject, ProgramList> PROGRAM_LIST_CONVERTER = jsonObj -> {
+        JsonObject jsonChannel = jsonObj.get("channel").getAsJsonObject();
+        ChannelInfo channel = parseRawChannelData(jsonChannel);
+        JsonArray programList = jsonObj.get("programList").getAsJsonArray();
+        return new ProgramList(channel, programList);
+    };
 
     @Override
     public void getProgramInfo(ProgramInfoListener listener) {
@@ -1548,22 +1189,19 @@ public class WebOSTVService extends DeviceService
     }
 
     @Override
-    public ServiceSubscription<ProgramInfoListener> subscribeProgramInfo(ProgramInfoListener listener) {
-        Util.postError(listener, ServiceCommandError.notSupported(new Object() {
-        }.getClass().getEnclosingMethod().getName()));
-
-        return new NotSupportedServiceSubscription<ProgramInfoListener>();
-    }
-
-    @Override
     public void getProgramList(ProgramListListener listener) {
-        getProgramList(false, listener);
+        ServiceCommand<ProgramList, ProgramListListener> request = new ServiceCommand<>(this, PROGRAM, null, true,
+                PROGRAM_LIST_CONVERTER, listener);
+        request.send();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+
     public ServiceSubscription<ProgramListListener> subscribeProgramList(ProgramListListener listener) {
-        return (ServiceSubscription<ProgramListListener>) getProgramList(true, listener);
+        URLServiceSubscription<ProgramList, ProgramListListener> request = new URLServiceSubscription<>(this, PROGRAM,
+                null, true, PROGRAM_LIST_CONVERTER, listener);
+        request.send();
+        return request;
     }
 
     @Override
@@ -1575,52 +1213,29 @@ public class WebOSTVService extends DeviceService
             uri = "ssap://com.webos.service.tv.display/set3DOff";
         }
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
 
         request.send();
     }
 
-    private ServiceCommand<ResponseListener<JsonObject>> get3DEnabled(boolean isSubscription,
-            final State3DModeListener listener) {
-        String uri = "ssap://com.webos.service.tv.display/get3DStatus";
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                JsonObject status = jsonObj.get("status3D").getAsJsonObject();
-                boolean isEnabled = status.get("status").getAsBoolean();
-                Util.postSuccess(listener, isEnabled);
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request;
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, uri, null, true, responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, uri, null, true, responseListener);
-        }
-
-        request.send();
-
-        return request;
-    }
+    private static final Function<JsonObject, Boolean> THREED_STATUS_CONVERTER = jsonObj -> jsonObj.get("status3D")
+            .getAsJsonObject().get("status").getAsBoolean();
 
     @Override
     public void get3DEnabled(final State3DModeListener listener) {
-        get3DEnabled(false, listener);
+        ServiceCommand<Boolean, State3DModeListener> request = new ServiceCommand<>(this, THREED_STATUS, null, true,
+                THREED_STATUS_CONVERTER, listener);
+        request.send();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+
     public ServiceSubscription<State3DModeListener> subscribe3DEnabled(final State3DModeListener listener) {
-        return (ServiceSubscription<State3DModeListener>) get3DEnabled(true, listener);
+        URLServiceSubscription<Boolean, State3DModeListener> request = new URLServiceSubscription<>(this, THREED_STATUS,
+                null, true, THREED_STATUS_CONVERTER, listener);
+        request.send();
+        return request;
     }
 
     /**************
@@ -1667,24 +1282,8 @@ public class WebOSTVService extends DeviceService
     @Override
     public void getExternalInputList(final ExternalInputListListener listener) {
         String uri = "ssap://tv/getExternalInputList";
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                JsonArray devices = (JsonArray) jsonObj.get("devices");
-                Util.postSuccess(listener, externalnputInfoFromJsonArray(devices));
-
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, responseListener);
+        ServiceCommand<List<ExternalInputInfo>, ExternalInputListListener> request = new ServiceCommand<>(this, uri,
+                null, true, jsonObj -> externalnputInfoFromJsonArray((JsonArray) jsonObj.get("devices")), listener);
         request.send();
     }
 
@@ -1694,18 +1293,14 @@ public class WebOSTVService extends DeviceService
 
         JsonObject payload = new JsonObject();
 
-        try {
-            if (externalInputInfo != null && externalInputInfo.getId() != null) {
-                payload.put("inputId", externalInputInfo.getId());
-            } else {
-                Log.w(Util.T, "ExternalInputInfo has no id");
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
+        if (externalInputInfo != null && externalInputInfo.getId() != null) {
+            payload.addProperty("inputId", externalInputInfo.getId());
+        } else {
+            Log.w(Util.T, "ExternalInputInfo has no id");
         }
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
     }
 
@@ -1724,12 +1319,7 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public void connectMouse() {
-        connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-            @Override
-            public void onConnected() {
-                // intentionally left empty
-            }
-        });
+        connectMouse();
     }
 
     @Override
@@ -1742,7 +1332,7 @@ public class WebOSTVService extends DeviceService
         mouseSocket = null;
     }
 
-    private void connectMouse(final WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener successHandler) {
+    private void connectMouse(Runnable onConnected) {
         if (mouseSocket != null) {
             return;
         }
@@ -1753,8 +1343,13 @@ public class WebOSTVService extends DeviceService
 
             @Override
             public void onSuccess(JsonObject jsonObj) {
-                String socketPath = jsonObj.get("socketPath").getAsString();
-                mouseSocket = new WebOSTVMouseSocketConnection(socketPath, successHandler);
+                String socketPath = jsonObj.get("socketPath").getAsString().replace("wss:", "ws:").replace(":3001/",
+                        ":3000/");
+                try {
+                    mouseSocket.connect(new URI(socketPath), onConnected);
+                } catch (URISyntaxException e) {
+                    Log.w(Util.T, "Connect mouse error: " + e.getMessage());
+                }
             }
 
             @Override
@@ -1763,8 +1358,8 @@ public class WebOSTVService extends DeviceService
             }
         };
 
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, listener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(this, uri, null, true,
+                x -> x, listener);
         request.send();
     }
 
@@ -1773,12 +1368,7 @@ public class WebOSTVService extends DeviceService
         if (mouseSocket != null) {
             mouseSocket.click();
         } else {
-            connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-                @Override
-                public void onConnected() {
-                    mouseSocket.click();
-                }
-            });
+            connectMouse(() -> mouseSocket.click());
         }
     }
 
@@ -1787,12 +1377,7 @@ public class WebOSTVService extends DeviceService
         if (mouseSocket != null) {
             mouseSocket.move(dx, dy);
         } else {
-            connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-                @Override
-                public void onConnected() {
-                    mouseSocket.move(dx, dy);
-                }
-            });
+            connectMouse(() -> mouseSocket.move(dx, dy));
         }
     }
 
@@ -1806,12 +1391,7 @@ public class WebOSTVService extends DeviceService
         if (mouseSocket != null) {
             mouseSocket.scroll(dx, dy);
         } else {
-            connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-                @Override
-                public void onConnected() {
-                    mouseSocket.scroll(dx, dy);
-                }
-            });
+            connectMouse(() -> mouseSocket.scroll(dx, dy));
         }
     }
 
@@ -1900,28 +1480,15 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public void powerOff(ResponseListener<Object> listener) {
-        ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-
-            @Override
-            public void onSuccess(Object response) {
-
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-
-            }
-        };
-
         String uri = "ssap://system/turnOff";
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null,
-                true, responseListener);
-
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, null, true, x -> x,
+                listener);
         request.send();
     }
 
     @Override
     public void powerOn(ResponseListener<Object> listener) {
+        // TODO: implement wake on lan here
         Util.postError(listener, ServiceCommandError.notSupported(new Object() {
         }.getClass().getEnclosingMethod().getName()));
     }
@@ -1936,20 +1503,17 @@ public class WebOSTVService extends DeviceService
 
     @Override
     public CapabilityPriorityLevel getKeyControlCapabilityLevel() {
-        return CapabilityPriorityLevel.HIGH;
+        return CapabilityPriorityLevel.HIGH; // TODO: remove
     }
 
     private void sendSpecialKey(final String key, final ResponseListener<Object> listener) {
         if (mouseSocket != null) {
             mouseSocket.button(key);
-            Util.postSuccess(listener, null);
+            listener.onSuccess(null);
         } else {
-            connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-                @Override
-                public void onConnected() {
-                    mouseSocket.button(key);
-                    Util.postSuccess(listener, null);
-                }
+            connectMouse(() -> {
+                mouseSocket.button(key);
+                listener.onSuccess(null);
             });
         }
     }
@@ -1980,12 +1544,9 @@ public class WebOSTVService extends DeviceService
             mouseSocket.click();
             Util.postSuccess(listener, null);
         } else {
-            connectMouse(new WebOSTVMouseSocketConnection.WebOSTVMouseSocketListener() {
-                @Override
-                public void onConnected() {
-                    mouseSocket.click();
-                    Util.postSuccess(listener, null);
-                }
+            connectMouse(() -> {
+                mouseSocket.click();
+                Util.postSuccess(listener, null);
             });
         }
     }
@@ -2029,55 +1590,41 @@ public class WebOSTVService extends DeviceService
             final WebAppSession.LaunchListener listener) {
         if (webAppId == null || webAppId.length() == 0) {
             Util.postError(listener, new ServiceCommandError("You need to provide a valid webAppId."));
-
             return;
         }
 
-        final WebOSWebAppSession _webAppSession = mWebAppSessions.get(webAppId);
-
         String uri = "ssap://webapp/launchWebApp";
         JsonObject payload = new JsonObject();
-
         payload.addProperty("webAppId", webAppId);
 
         if (params != null) {
             payload.add("urlParams", params);
         }
 
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(final JsonObject obj) {
-
-                LaunchSession launchSession = null;
-                WebOSWebAppSession webAppSession = _webAppSession;
-
-                if (webAppSession != null) {
-                    launchSession = webAppSession.launchSession;
-                } else {
-                    launchSession = LaunchSession.launchSessionForAppId(webAppId);
-                    webAppSession = new WebOSWebAppSession(launchSession, WebOSTVService.this);
-                    mWebAppSessions.put(webAppId, webAppSession);
-                }
-
-                launchSession.setService(WebOSTVService.this);
-                launchSession.setSessionId(obj.get("sessionId").getAsString());
-                launchSession.setSessionType(LaunchSessionType.WebApp);
-                launchSession.setRawData(obj);
-
-                Util.postSuccess(listener, webAppSession);
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, payload, true, responseListener);
+        ServiceCommand<WebAppSession, WebAppSession.LaunchListener> request = new ServiceCommand<>(this, uri, payload,
+                true, x -> createWebAppSession(x, webAppId), listener);
         request.send();
     }
+
+    private WebAppSession createWebAppSession(final JsonObject obj, final String webAppId) {
+        final WebOSWebAppSession _webAppSession = mWebAppSessions.get(webAppId);
+        LaunchSession launchSession = null;
+        WebOSWebAppSession webAppSession = _webAppSession;
+
+        if (webAppSession != null) {
+            launchSession = webAppSession.launchSession;
+        } else {
+            launchSession = LaunchSession.launchSessionForAppId(webAppId);
+            webAppSession = new WebOSWebAppSession(launchSession, WebOSTVService.this);
+            mWebAppSessions.put(webAppId, webAppSession);
+        }
+
+        launchSession.setService(WebOSTVService.this);
+        launchSession.setSessionId(obj.get("sessionId").getAsString());
+        launchSession.setSessionType(LaunchSessionType.WebApp);
+        launchSession.setRawData(obj);
+        return webAppSession;
+    };
 
     @Override
     public void launchWebApp(final String webAppId, final JsonObject params, boolean relaunchIfRunning,
@@ -2094,7 +1641,7 @@ public class WebOSTVService extends DeviceService
 
                 @Override
                 public void onError(ServiceCommandError error) {
-                    Util.postError(listener, error);
+                    listener.onError(error);
                 }
 
                 @Override
@@ -2108,7 +1655,7 @@ public class WebOSTVService extends DeviceService
 
                         WebOSWebAppSession webAppSession = webAppSessionForLaunchSession(launchSession);
 
-                        Util.postSuccess(listener, webAppSession);
+                        listener.onSuccess(webAppSession);
                     } else {
                         launchWebApp(webAppId, params, listener);
                     }
@@ -2132,19 +1679,15 @@ public class WebOSTVService extends DeviceService
         String uri = "ssap://webapp/closeWebApp";
         JsonObject payload = new JsonObject();
 
-        try {
-            if (launchSession.getAppId() != null) {
-                payload.put("webAppId", launchSession.getAppId());
-            }
-            if (launchSession.getSessionId() != null) {
-                payload.put("sessionId", launchSession.getSessionId());
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
+        if (launchSession.getAppId() != null) {
+            payload.addProperty("webAppId", launchSession.getAppId());
+        }
+        if (launchSession.getSessionId() != null) {
+            payload.addProperty("sessionId", launchSession.getSessionId());
         }
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri,
-                payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, uri, payload, true,
+                x -> x, listener);
         request.send();
     }
 
@@ -2159,8 +1702,7 @@ public class WebOSTVService extends DeviceService
         }
 
         if (webAppSession == null || webAppSession.launchSession == null) {
-            Util.postError(connectionListener,
-                    new ServiceCommandError("You must provide a valid LaunchSession object"));
+            connectionListener.onError(new ServiceCommandError("You must provide a valid LaunchSession object"));
             return;
         }
 
@@ -2174,7 +1716,7 @@ public class WebOSTVService extends DeviceService
         }
 
         if (_appId == null || _appId.length() == 0) {
-            Util.postError(connectionListener, new ServiceCommandError("You must provide a valid web app session"));
+            connectionListener.onError(new ServiceCommandError("You must provide a valid web app session"));
 
             return;
         }
@@ -2228,31 +1770,22 @@ public class WebOSTVService extends DeviceService
             @Override
             public void onError(ServiceCommandError error) {
                 webAppSession.disconnectFromWebApp();
-
                 boolean appChannelDidClose = false;
-
                 appChannelDidClose = error.getMessage().contains("app channel closed");
-
                 if (appChannelDidClose) {
                     if (webAppSession.getWebAppSessionListener() != null) {
                         Util.run(() -> webAppSession.getWebAppSessionListener()
                                 .onWebAppSessionDisconnect(webAppSession));
                     }
                 } else {
-                    Util.postError(connectionListener, error);
+                    connectionListener.onError(error);
                 }
             }
         };
 
-        webAppSession.appToAppSubscription = new URLServiceSubscription<ResponseListener<JsonObject>>(
-                webAppSession.socket, uri, payload, true, responseListener);
+        webAppSession.appToAppSubscription = new URLServiceSubscription<>(this, uri, payload, true, x -> x,
+                responseListener);
         webAppSession.appToAppSubscription.subscribe();
-    }
-
-    private void notifyPairingRequired() {
-        if (listener != null) {
-            listener.onPairingRequired(this, pairingType, null);
-        }
     }
 
     @Override
@@ -2269,25 +1802,8 @@ public class WebOSTVService extends DeviceService
 
         payload.addProperty("webAppId", webAppId);
 
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(final JsonObject obj) {
-                if (obj.has("pairingType")) {
-                    notifyPairingRequired();
-                } else if (listener != null) {
-                    listener.onSuccess(obj);
-                }
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new URLServiceSubscription<ResponseListener<JsonObject>>(
-                this, uri, payload, true, responseListener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new URLServiceSubscription<>(this, uri, payload,
+                true, x -> x, listener);
         request.send();
     }
 
@@ -2305,30 +1821,32 @@ public class WebOSTVService extends DeviceService
 
         payload.addProperty("webAppId", webAppId);
 
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(final JsonObject obj) {
-                if (obj.has("pairingType")) {
-                    notifyPairingRequired();
-                } else if (listener != null) {
-                    listener.onSuccess(obj);
-                }
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new URLServiceSubscription<ResponseListener<JsonObject>>(
-                this, uri, payload, true, responseListener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new URLServiceSubscription<>(this, uri, payload,
+                true, x -> x, listener);
         request.send();
     }
 
-    private ServiceCommand<ResponseListener<JsonObject>> isWebAppPinned(boolean isSubscription, String webAppId,
-            final WebAppPinStatusListener listener) {
+    @Override
+    public void isWebAppPinned(String webAppId, WebAppPinStatusListener listener) {
+        if (webAppId == null || webAppId.length() == 0) {
+            if (listener != null) {
+                listener.onError(new ServiceCommandError("You must provide a valid web app id"));
+            }
+        }
+
+        String uri = "ssap://webapp/isWebAppPinned";
+        JsonObject payload = new JsonObject();
+        payload.addProperty("webAppId", webAppId);
+
+        ServiceCommand<Boolean, WebAppPinStatusListener> request = new ServiceCommand<>(this, uri, payload, true,
+                obj -> obj.get("pinned").getAsBoolean(), listener);
+
+        request.send();
+    }
+
+    @Override
+    public ServiceSubscription<WebAppPinStatusListener> subscribeIsWebAppPinned(String webAppId,
+            WebAppPinStatusListener listener) {
         if (webAppId == null || webAppId.length() == 0) {
             if (listener != null) {
                 listener.onError(new ServiceCommandError("You must provide a valid web app id"));
@@ -2340,44 +1858,12 @@ public class WebOSTVService extends DeviceService
         JsonObject payload = new JsonObject();
         payload.addProperty("webAppId", webAppId);
 
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(final JsonObject obj) {
-                boolean status = obj.get("pinned").getAsBoolean();
-                if (listener != null) {
-                    listener.onSuccess(status);
-                }
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request;
-        if (isSubscription) {
-            request = new URLServiceSubscription<ResponseListener<JsonObject>>(this, uri, payload, true,
-                    responseListener);
-        } else {
-            request = new ServiceCommand<ResponseListener<JsonObject>>(this, uri, payload, true, responseListener);
-        }
+        URLServiceSubscription<Boolean, WebAppPinStatusListener> request;
+        request = new URLServiceSubscription<>(this, uri, payload, true, obj -> obj.get("pinned").getAsBoolean(),
+                listener);
 
         request.send();
-
         return request;
-    }
-
-    @Override
-    public void isWebAppPinned(String webAppId, WebAppPinStatusListener listener) {
-        isWebAppPinned(false, webAppId, listener);
-    }
-
-    @Override
-    public ServiceSubscription<WebAppPinStatusListener> subscribeIsWebAppPinned(String webAppId,
-            WebAppPinStatusListener listener) {
-        return (URLServiceSubscription<WebAppPinStatusListener>) isWebAppPinned(true, webAppId, listener);
     }
 
     /* Join a native/installed webOS app */
@@ -2385,7 +1871,6 @@ public class WebOSTVService extends DeviceService
         LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
         launchSession.setSessionType(LaunchSessionType.App);
         launchSession.setService(this);
-
         joinWebApp(launchSession, listener);
     }
 
@@ -2492,8 +1977,8 @@ public class WebOSTVService extends DeviceService
         payload.addProperty("to", fullAppId);
         payload.add("payload", message);
 
-        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, null,
-                payload, true, listener);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(this, null, payload, true,
+                x -> x, listener);
         sendCommand(request);
     }
 
@@ -2519,105 +2004,36 @@ public class WebOSTVService extends DeviceService
      */
     public void getServiceInfo(final ServiceInfoListener listener) {
         String uri = "ssap://api/getServiceList";
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, new ResponseListener<JsonObject>() {
-
-                    @Override
-                    public void onSuccess(JsonObject jsonObj) {
-                        Util.postSuccess(listener, jsonObj.get("services").getAsJsonArray());
-                    }
-
-                    @Override
-                    public void onError(ServiceCommandError error) {
-                        Util.postError(listener, error);
-                    }
-                });
-
+        ServiceCommand<JsonArray, ServiceInfoListener> request = new ServiceCommand<>(this, uri, null, true,
+                jsonObj -> jsonObj.get("services").getAsJsonArray(), listener);
         request.send();
     }
 
     public void getSystemInfo(final SystemInfoListener listener) {
         String uri = "ssap://system/getSystemInfo";
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, new ResponseListener<JsonObject>() {
-
-                    @Override
-                    public void onSuccess(JsonObject jsonObj) {
-                        Util.postSuccess(listener, jsonObj.get("features").getAsJsonObject());
-
-                    }
-
-                    @Override
-                    public void onError(ServiceCommandError error) {
-                        Util.postError(listener, error);
-                    }
-                });
-
+        ServiceCommand<JsonObject, SystemInfoListener> request = new ServiceCommand<>(this, uri, null, true,
+                jsonObj -> jsonObj.get("features").getAsJsonObject(), listener);
         request.send();
     }
 
     public void secureAccessTest(final SecureAccessTestListener listener) {
         String uri = "ssap://com.webos.service.secondscreen.gateway/test/secure";
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                Util.postSuccess(listener, jsonObj.get("returnValue").getAsBoolean());
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, responseListener);
+        ServiceCommand<Boolean, SecureAccessTestListener> request = new ServiceCommand<>(this, uri, null, true,
+                jsonObj -> jsonObj.get("returnValue").getAsBoolean(), listener);
         request.send();
     }
 
     public void getACRAuthToken(final ACRAuthTokenListener listener) {
         String uri = "ssap://tv/getACRAuthToken";
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                Util.postSuccess(listener, jsonObj.get("token").getAsString());
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, responseListener);
+        ServiceCommand<String, ACRAuthTokenListener> request = new ServiceCommand<>(this, uri, null, true,
+                jsonObj -> jsonObj.get("token").getAsString(), listener);
         request.send();
     }
 
     public void getLaunchPoints(final LaunchPointsListener listener) {
         String uri = "ssap://com.webos.applicationManager/listLaunchPoints";
-
-        ResponseListener<JsonObject> responseListener = new ResponseListener<JsonObject>() {
-
-            @Override
-            public void onSuccess(JsonObject jsonObj) {
-                Util.postSuccess(listener, jsonObj.get("launchPoints").getAsJsonArray());
-            }
-
-            @Override
-            public void onError(ServiceCommandError error) {
-                Util.postError(listener, error);
-            }
-        };
-
-        ServiceCommand<ResponseListener<JsonObject>> request = new ServiceCommand<ResponseListener<JsonObject>>(this,
-                uri, null, true, responseListener);
+        ServiceCommand<JsonArray, LaunchPointsListener> request = new ServiceCommand<>(this, uri, null, true,
+                jsonObj -> jsonObj.get("launchPoints").getAsJsonArray(), listener);
         request.send();
     }
 
@@ -2647,14 +2063,14 @@ public class WebOSTVService extends DeviceService
     }
 
     @Override
-    public void sendCommand(ServiceCommand<?> command) {
+    public void sendCommand(ServiceCommand<?, ?> command) {
         if (socket != null) {
             socket.sendCommand(command);
         }
     }
 
     @Override
-    public void unsubscribe(URLServiceSubscription<?> subscription) {
+    public void unsubscribe(URLServiceSubscription<?, ?> subscription) {
         if (socket != null) {
             socket.unsubscribe(subscription);
         }
@@ -2894,13 +2310,6 @@ public class WebOSTVService extends DeviceService
     @Override
     public boolean isConnectable() {
         return true;
-    }
-
-    @Override
-    public void sendPairingKey(String pairingKey) {
-        if (this.socket != null) {
-            this.socket.sendPairingKey(pairingKey);
-        }
     }
 
     public static interface ServiceInfoListener extends ResponseListener<JsonArray> {

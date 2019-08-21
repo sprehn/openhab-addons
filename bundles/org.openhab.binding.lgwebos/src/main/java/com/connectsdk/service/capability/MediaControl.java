@@ -1,10 +1,10 @@
 /*
  * MediaControl
  * Connect SDK
- * 
+ *
  * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -53,29 +53,14 @@ public interface MediaControl extends CapabilityMethods {
     @Deprecated
     public final static String Next = "MediaControl.Next";
 
-
     public static final int PLAYER_STATE_UNKNOWN = 0;
-    public static final int PLAYER_STATE_IDLE = 1;  
+    public static final int PLAYER_STATE_IDLE = 1;
     public static final int PLAYER_STATE_PLAYING = 2;
     public static final int PLAYER_STATE_PAUSED = 3;
     public static final int PLAYER_STATE_BUFFERING = 4;
 
-
-    public final static Collection<String> Capabilities = 
-            Collections.unmodifiableCollection(Arrays.asList(
-        Play,
-        Pause,
-        Stop,
-        Rewind,
-        FastForward,
-        Seek,
-        Previous,
-        Next,
-        Duration,
-        PlayState,
-        PlayState_Subscribe,
-        Position
-    ));
+    public final static Collection<String> Capabilities = Collections.unmodifiableCollection(Arrays.asList(Play, Pause,
+            Stop, Rewind, FastForward, Seek, Previous, Next, Duration, PlayState, PlayState_Subscribe, Position));
 
     /**
      * Enumerates possible playback status
@@ -113,6 +98,7 @@ public interface MediaControl extends CapabilityMethods {
 
         /**
          * Converts int value into PlayStateStatus
+         *
          * @param playerState int value
          * @return PlayStateStatus
          */
@@ -120,22 +106,22 @@ public interface MediaControl extends CapabilityMethods {
             PlayStateStatus status = PlayStateStatus.Unknown;
 
             switch (playerState) {
-            case PLAYER_STATE_BUFFERING:
-                status = PlayStateStatus.Buffering;
-                break;
-            case PLAYER_STATE_IDLE:
-                status = PlayStateStatus.Finished;
-                break;
-            case PLAYER_STATE_PAUSED:
-                status = PlayStateStatus.Paused;
-                break;
-            case PLAYER_STATE_PLAYING:
-                status = PlayStateStatus.Playing;
-                break;
-            case PLAYER_STATE_UNKNOWN:
-            default:
-                status = PlayStateStatus.Unknown;
-                break;
+                case PLAYER_STATE_BUFFERING:
+                    status = PlayStateStatus.Buffering;
+                    break;
+                case PLAYER_STATE_IDLE:
+                    status = PlayStateStatus.Finished;
+                    break;
+                case PLAYER_STATE_PAUSED:
+                    status = PlayStateStatus.Paused;
+                    break;
+                case PLAYER_STATE_PLAYING:
+                    status = PlayStateStatus.Playing;
+                    break;
+                case PLAYER_STATE_UNKNOWN:
+                default:
+                    status = PlayStateStatus.Unknown;
+                    break;
             }
 
             return status;
@@ -143,6 +129,7 @@ public interface MediaControl extends CapabilityMethods {
 
         /**
          * Converts String value into PlayStateStatus
+         *
          * @param transportState String value
          * @return PlayStateStatus
          */
@@ -151,23 +138,17 @@ public interface MediaControl extends CapabilityMethods {
 
             if (transportState.equals("STOPPED")) {
                 status = PlayStateStatus.Finished;
-            }
-            else if (transportState.equals("PLAYING")) {
+            } else if (transportState.equals("PLAYING")) {
                 status = PlayStateStatus.Playing;
-            }
-            else if (transportState.equals("TRANSITIONING")) {
+            } else if (transportState.equals("TRANSITIONING")) {
                 status = PlayStateStatus.Buffering;
-            }
-            else if (transportState.equals("PAUSED_PLAYBACK")) {
-                status = PlayStateStatus.Paused; 
-            }
-            else if (transportState.equals("PAUSED_RECORDING")) {
+            } else if (transportState.equals("PAUSED_PLAYBACK")) {
+                status = PlayStateStatus.Paused;
+            } else if (transportState.equals("PAUSED_RECORDING")) {
 
-            }
-            else if (transportState.equals("RECORDING")) {
+            } else if (transportState.equals("RECORDING")) {
 
-            }
-            else if (transportState.equals("NO_MEDIA_PRESENT")) {
+            } else if (transportState.equals("NO_MEDIA_PRESENT")) {
 
             }
             return status;
@@ -176,12 +157,14 @@ public interface MediaControl extends CapabilityMethods {
 
     /**
      * Get MediaControl implementation
+     *
      * @return MediaControl
      */
     public MediaControl getMediaControl();
 
     /**
      * Get a capability priority for current implementation
+     *
      * @return CapabilityPriorityLevel
      */
     public CapabilityPriorityLevel getMediaControlCapabilityLevel();
@@ -197,48 +180,36 @@ public interface MediaControl extends CapabilityMethods {
     public void fastForward(ResponseListener<Object> listener);
 
     /**
-     * This method is deprecated.
-     * Use `PlaylistControl#previous(ResponseListener&lt;Object&gt; listener)` instead.
-     * @param listener the listener
-     */
-    @Deprecated
-    public void previous(ResponseListener<Object> listener);
-
-    /**
-     * This method is deprecated.
-     * Use `PlaylistControl#next(ResponseListener&lt;Object&gt; listener)` instead.
-     * @param listener the listener
-     */
-    @Deprecated
-    public void next(ResponseListener<Object> listener);
-
-    /**
      * @param position The new position, in milliseconds from the beginning of the stream
      * @param listener (optional) ResponseListener&lt;Object&gt; with methods to be called on success
-     *                 or failure
+     *            or failure
      */
     public void seek(long position, ResponseListener<Object> listener);
 
     /**
      * Get the current media duration in milliseconds.
+     *
      * @param listener the listener that receives the result
      */
     public void getDuration(DurationListener listener);
 
     /**
      * Get the current playback position in milliseconds.
+     *
      * @param listener the listener that receives the result
      */
     public void getPosition(PositionListener listener);
 
     /**
      * Get the current state of playback.
+     *
      * @param listener the listener that receives the result
      */
     public void getPlayState(PlayStateListener listener);
 
     /**
      * Subscribe for playback state changes
+     *
      * @param listener receives play state notifications
      * @return ServiceSubscription&lt;PlayStateListener&gt;
      */
@@ -249,19 +220,26 @@ public interface MediaControl extends CapabilityMethods {
      *
      * Passes a PlayStateStatus enum of the current media file
      */
-    public static interface PlayStateListener extends ResponseListener<PlayStateStatus> { }
+    public static interface PlayStateListener extends ResponseListener<PlayStateStatus> {
+    }
 
     /**
      * Success block that is called upon successfully getting the media file's current playhead position.
      *
      * Passes the position of the current playhead position of the current media file, in seconds
      */
-    public static interface PositionListener extends ResponseListener<Long> { }
+    public static interface PositionListener extends ResponseListener<Long> {
+    }
 
     /**
      * Success block that is called upon successfully getting the media file's duration.
      *
      * Passes the duration of the current media file, in seconds
      */
-    public static interface DurationListener extends ResponseListener<Long> { }
+    public static interface DurationListener extends ResponseListener<Long> {
+    }
+
+    public void previous(ResponseListener<Object> listener);
+
+    public void next(ResponseListener<Object> listener);
 }

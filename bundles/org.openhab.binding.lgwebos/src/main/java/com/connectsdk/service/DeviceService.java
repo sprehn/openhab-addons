@@ -71,40 +71,10 @@ import com.google.gson.JsonObject;
  */
 public class DeviceService implements ServiceCommandProcessor {
 
-    /**
-     * Enumerates available pairing types. It is used by a DeviceService for implementing pairing
-     * strategy.
-     */
-    public enum PairingType {
-        /**
-         * DeviceService doesn't require pairing
-         */
-        NONE,
-
-        /**
-         * In this mode user must confirm pairing on the first screen device (e.g. an alert on a TV)
-         */
-        FIRST_SCREEN,
-
-        /**
-         * In this mode user must enter a pin code from a mobile device and send it to the first
-         * screen device
-         */
-        PIN_CODE,
-
-        /**
-         * In this mode user can either enter a pin code from a mobile device or confirm
-         * pairing on the TV
-         */
-        MIXED,
-    }
-
     // @cond INTERNAL
     public static final String KEY_CLASS = "class";
     public static final String KEY_CONFIG = "config";
     public static final String KEY_DESC = "description";
-
-    PairingType pairingType = PairingType.NONE;
 
     ServiceDescription serviceDescription;
 
@@ -251,13 +221,6 @@ public class DeviceService implements ServiceCommandProcessor {
         return null;
     }
 
-    public PairingType getPairingType() {
-        return pairingType;
-    }
-
-    public void setPairingType(PairingType pairingType) {
-    }
-
     @SuppressWarnings("unchecked")
     public <T extends CapabilityMethods> T getAPI(Class<?> clazz) {
         if (clazz.isAssignableFrom(this.getClass())) {
@@ -302,14 +265,6 @@ public class DeviceService implements ServiceCommandProcessor {
         return false;
     }
 
-    /**
-     * Explicitly cancels pairing in services that require pairing. In some services, this will hide a prompt that is
-     * displaying on the device.
-     */
-    public void cancelPairing() {
-
-    }
-
     protected void reportConnected(boolean ready) {
         if (listener == null) {
             return;
@@ -330,21 +285,10 @@ public class DeviceService implements ServiceCommandProcessor {
         }
     }
 
-    /**
-     * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported
-     * back to the DeviceServiceListener.
-     *
-     * @param pairingKey Data to be used for pairing. The type of this parameter will vary depending on what type of
-     *                       pairing is required, but is likely to be a string (pin code, pairing key, etc).
-     */
-    public void sendPairingKey(String pairingKey) {
-
-    }
-
     // @cond INTERNAL
 
     @Override
-    public void unsubscribe(URLServiceSubscription<?> subscription) {
+    public void unsubscribe(URLServiceSubscription<?, ?> subscription) {
 
     }
 
@@ -354,7 +298,7 @@ public class DeviceService implements ServiceCommandProcessor {
     }
 
     @Override
-    public void sendCommand(ServiceCommand<?> command) {
+    public void sendCommand(ServiceCommand<?, ?> command) {
 
     }
 
@@ -548,7 +492,7 @@ public class DeviceService implements ServiceCommandProcessor {
      * different ways of handling the close functionality.
      *
      * @param launchSession LaunchSession to close
-     * @param listener      (optional) listener to be called on success/failure
+     * @param listener (optional) listener to be called on success/failure
      */
     public void closeLaunchSession(LaunchSession launchSession, ResponseListener<Object> listener) {
         if (launchSession == null) {
@@ -692,14 +636,6 @@ public class DeviceService implements ServiceCommandProcessor {
 
         /*
          * !
-         * If the DeviceService requires an active connection (websocket, pairing, etc) this method will be called.
-         *
-         * @param service DeviceService that requires connection
-         */
-        public void onConnectionRequired(DeviceService service);
-
-        /*
-         * !
          * After the connection has been successfully established, and after pairing (if applicable), this method will
          * be called.
          *
@@ -746,18 +682,6 @@ public class DeviceService implements ServiceCommandProcessor {
          * @param error Error with a description of the failure
          */
         public void onConnectionFailure(DeviceService service, Error error);
-
-        /*
-         * !
-         * If the DeviceService requires pairing, valuable data will be passed to the delegate via this method.
-         *
-         * @param service DeviceService that requires pairing
-         *
-         * @param pairingType PairingType that the DeviceService requires
-         *
-         * @param pairingData Any data that might be required for the pairing process, will usually be nil
-         */
-        public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData);
 
         /*
          * !
