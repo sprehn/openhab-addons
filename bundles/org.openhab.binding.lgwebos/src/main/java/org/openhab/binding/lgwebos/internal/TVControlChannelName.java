@@ -23,9 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.connectsdk.core.ChannelInfo;
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.service.capability.TVControl;
-import com.connectsdk.service.capability.TVControl.ChannelListener;
+import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
@@ -36,41 +34,33 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class TVControlChannelName extends BaseChannelHandler<ChannelListener, Object> {
+public class TVControlChannelName extends BaseChannelHandler<ResponseListener<ChannelInfo>, Object> {
     private final Logger logger = LoggerFactory.getLogger(TVControlChannelName.class);
 
-    private TVControl getControl(ConnectableDevice device) {
-        return device.getCapability(TVControl.class);
-    }
-
     @Override
-    public void onReceiveCommand(@Nullable ConnectableDevice device, String channelId, LGWebOSHandler handler,
-            Command command) {
+    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
         // nothing to do, this is read only.
     }
 
     @Override
-    protected Optional<ServiceSubscription<ChannelListener>> getSubscription(ConnectableDevice device, String channelId,
+    protected Optional<ServiceSubscription<ResponseListener<ChannelInfo>>> getSubscription(String channelId,
             LGWebOSHandler handler) {
-        if (hasCapability(device, TVControl.Channel_Subscribe)) {
-            return Optional.of(getControl(device).subscribeCurrentChannel(new ChannelListener() {
 
-                @Override
-                public void onError(@Nullable ServiceCommandError error) {
-                    logger.debug("Error in listening to channel name changes: {}.",
-                            error == null ? "" : error.getMessage());
-                }
+        return Optional.of(handler.getSocket().subscribeCurrentChannel(new ResponseListener<ChannelInfo>() {
+            @Override
+            public void onError(@Nullable ServiceCommandError error) {
+                logger.debug("Error in listening to channel name changes: {}.",
+                        error == null ? "" : error.getMessage());
+            }
 
-                @Override
-                public void onSuccess(@Nullable ChannelInfo channelInfo) {
-                    if (channelInfo == null) {
-                        return;
-                    }
-                    handler.postUpdate(channelId, new StringType(channelInfo.getName()));
+            @Override
+            public void onSuccess(@Nullable ChannelInfo channelInfo) {
+                if (channelInfo == null) {
+                    return;
                 }
-            }));
-        } else {
-            return Optional.empty();
-        }
+                handler.postUpdate(channelId, new StringType(channelInfo.getName()));
+            }
+        }));
+
     }
 }

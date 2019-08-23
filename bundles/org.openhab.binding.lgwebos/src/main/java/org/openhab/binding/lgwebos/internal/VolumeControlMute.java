@@ -22,9 +22,7 @@ import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.service.capability.VolumeControl;
-import com.connectsdk.service.capability.VolumeControl.MuteListener;
+import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
 
@@ -34,49 +32,38 @@ import com.connectsdk.service.command.ServiceSubscription;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class VolumeControlMute extends BaseChannelHandler<MuteListener, Object> {
+public class VolumeControlMute extends BaseChannelHandler<ResponseListener<Boolean>, Object> {
     private final Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
 
-    private VolumeControl getControl(ConnectableDevice device) {
-        return device.getCapability(VolumeControl.class);
-    }
-
     @Override
-    public void onReceiveCommand(@Nullable ConnectableDevice device, String channelId, LGWebOSHandler handler,
-            Command command) {
-        if (device == null) {
-            return;
-        }
+    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
         if (OnOffType.ON == command || OnOffType.OFF == command) {
-            if (hasCapability(device, VolumeControl.Mute_Set)) {
-                getControl(device).setMute(OnOffType.ON == command, getDefaultResponseListener());
-            }
+            handler.getSocket().setMute(OnOffType.ON == command, getDefaultResponseListener());
         } else {
             logger.warn("Only accept OnOffType. Type was {}.", command.getClass());
         }
     }
 
     @Override
-    protected Optional<ServiceSubscription<MuteListener>> getSubscription(ConnectableDevice device, String channelId,
+    protected Optional<ServiceSubscription<ResponseListener<Boolean>>> getSubscription(String channelId,
             LGWebOSHandler handler) {
-        if (hasCapability(device, VolumeControl.Mute_Subscribe)) {
-            return Optional.of(getControl(device).subscribeMute(new MuteListener() {
 
-                @Override
-                public void onError(@Nullable ServiceCommandError error) {
-                    logger.debug("Error in listening to mute changes: {}.", error == null ? "" : error.getMessage());
-                }
+        return Optional.of(handler.getSocket().subscribeMute(new ResponseListener<Boolean>() {
 
-                @Override
-                public void onSuccess(@Nullable Boolean value) {
-                    if (value == null) {
-                        return;
-                    }
-                    handler.postUpdate(channelId, OnOffType.from(value));
+            @Override
+            public void onError(@Nullable ServiceCommandError error) {
+                logger.debug("Error in listening to mute changes: {}.", error == null ? "" : error.getMessage());
+            }
+
+            @Override
+            public void onSuccess(@Nullable Boolean value) {
+                if (value == null) {
+                    return;
                 }
-            }));
-        } else {
-            return Optional.empty();
-        }
+                handler.postUpdate(channelId, OnOffType.from(value));
+            }
+        }));
+
     }
+
 }

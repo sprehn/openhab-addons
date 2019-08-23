@@ -17,9 +17,7 @@ import static org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -42,14 +40,9 @@ import org.openhab.binding.lgwebos.internal.TVControlChannelName;
 import org.openhab.binding.lgwebos.internal.ToastControlToast;
 import org.openhab.binding.lgwebos.internal.VolumeControlMute;
 import org.openhab.binding.lgwebos.internal.VolumeControlVolume;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket.WebOSTVSocketListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.ConnectableDeviceListener;
-import com.connectsdk.discovery.DiscoveryManager;
-import com.connectsdk.discovery.DiscoveryManagerListener;
-import com.connectsdk.service.command.ServiceCommandError;
 
 /**
  * The {@link LGWebOSHandler} is responsible for handling commands, which are
@@ -57,8 +50,7 @@ import com.connectsdk.service.command.ServiceCommandError;
  *
  * @author Sebastian Prehn - initial contribution
  */
-public class LGWebOSHandler extends BaseThingHandler
-        implements ConnectableDeviceListener, DiscoveryManagerListener, WebOSTVStore {
+public class LGWebOSHandler extends BaseThingHandler implements WebOSTVStore, WebOSTVSocketListener {
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSHandler.class);
 
@@ -67,12 +59,17 @@ public class LGWebOSHandler extends BaseThingHandler
     private String deviceId;
 
     private LauncherApplication appLauncher = new LauncherApplication();
+    private final WebOSTVSocket socket;
 
     public LGWebOSHandler(@NonNull Thing thing, WebSocketClient webSocketClient) {
         super(thing);
 
-        WebOSTVSocket socket = new WebOSTVSocket(webSocketClient, this, thing.getProperties().get(PROPERTY_DEVICE_IP));
-        WebOSTVMouseSocket mouseSocket = new WebOSTVMouseSocket(webSocketClient);
+        socket = new WebOSTVSocket(webSocketClient, this, thing.getProperties().get(PROPERTY_DEVICE_IP));
+        socket.setListener(this);
+        socket.connect();
+
+        // WebOSTVService service = new WebOSTVService(serviceDescription, serviceConfig)
+        // mouseSocket = new WebOSTVMouseSocket(webSocketClient);
 
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
@@ -85,6 +82,10 @@ public class LGWebOSHandler extends BaseThingHandler
         handlers.put(CHANNEL_TOAST, new ToastControlToast());
         handlers.put(CHANNEL_MEDIA_PLAYER, new MediaControlPlayer());
         channelHandlers = Collections.unmodifiableMap(handlers);
+    }
+
+    public WebOSTVSocket getSocket() {
+        return socket;
     }
 
     public LauncherApplication getLauncherApplication() {
@@ -101,19 +102,8 @@ public class LGWebOSHandler extends BaseThingHandler
                     command, channelUID);
             return;
         }
-        Optional<ConnectableDevice> device = getDevice();
-        if (!device.isPresent()) {
-            logger.debug("Device {} not found - most likely is is currently offline. Details: Channel {}, Command {}.",
-                    deviceId, channelUID.getId(), command);
-        }
-        handler.onReceiveCommand(device.orElse(null), channelUID.getId(), this, command);
-    }
 
-    public Optional<ConnectableDevice> getDevice() {
-        return Optional.empty();
-        // TODO: we need to establish the websocket connection from this class
-        // return discovery.getCompatibleDevices().values().stream().filter(device -> deviceId.equals(device.getId()))
-        // .findFirst();
+        handler.onReceiveCommand(channelUID.getId(), this, command);
     }
 
     @Override
@@ -128,68 +118,46 @@ public class LGWebOSHandler extends BaseThingHandler
 
     @Override
     public void setUUID(String uuid) {
-        getConfig().put(PROPERTY_DEVICE_KEY, uuid);
+        getConfig().put(PROPERTY_DEVICE_UUID, uuid);
     }
 
-    @Override
-    public void initialize() {
-        // discovery.addListener(this);
-        deviceId = getConfig().get(PROPERTY_DEVICE_ID).toString();
-
-        Optional<ConnectableDevice> deviceOpt = getDevice();
-        if (deviceOpt.isPresent()) {
-            ConnectableDevice device = deviceOpt.get();
-            device.addListener(this);
-            if (device.isConnected()) {
-                onDeviceReady(device);
-            } else {
-                updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Connecting ...");
-                device.connect();
-                // on success onDeviceReady will be called,
-                // if pairing is required onPairingRequired,
-                // otherwise onConnectionFailed
-            }
-        } else {
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
-        }
-    }
-
-    @Override
-    public void dispose() {
-        super.dispose();
-        getDevice().ifPresent(device -> device.removeListener(this));
-        // discovery.removeListener(this);
-    }
     // Connectable Device Listener
 
     @Override
-    public void onDeviceReady(ConnectableDevice device) { // this gets called on connection success
-        updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Connected");
-        refreshAllChannelSubscriptions(device);
-        channelHandlers.forEach((k, v) -> v.onDeviceReady(device, k, this));
-    }
+    public void onStateChanged(WebOSTVSocket.State old, WebOSTVSocket.State state) {
+        switch (state) {
+            case DISCONNECTED:
 
-    @Override
-    public void onDeviceDisconnected(ConnectableDevice device) {
-        logger.debug("Device disconnected: {}", device);
-        for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
-            e.getValue().onDeviceRemoved(device, e.getKey(), this);
-            e.getValue().removeAnySubscription(device);
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
+
+                for (Map.Entry<String, ChannelHandler> e : channelHandlers.entrySet()) {
+                    e.getValue().onDeviceRemoved(e.getKey(), this);
+                    e.getValue().removeAnySubscription(this);
+                }
+
+                break;
+            case CONNECTING:
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "Connecting ...");
+                break;
+            case DISCONNECTING:
+                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Disconnecting ...");
+                break;
+            case REGISTERED:
+                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Connected");
+                break;
+            case REGISTERING:
+                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Registering");
+                break;
         }
-        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
+
+        // refreshAllChannelSubscriptions(device);
+        // channelHandlers.forEach((k, v) -> v.onDeviceReady(device, k, this));
     }
 
     @Override
-    public void onCapabilityUpdated(ConnectableDevice device, List<String> added, List<String> removed) {
-        logger.debug("Capabilities updated: {} - added: {} - removed: {}", device, added, removed);
-        refreshAllChannelSubscriptions(device);
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectableDevice device, ServiceCommandError error) {
-        logger.debug("Connection failed: {} - error: {}", device, error.getMessage());
-        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                "Connection Failed: " + error.getMessage());
+    public void onError(String error) {
+        logger.debug("Connection failed - error: {}", error);
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Connection Failed: " + error);
     }
 
     // callback methods for commandHandlers
@@ -223,50 +191,10 @@ public class LGWebOSHandler extends BaseThingHandler
     private void refreshChannelSubscription(ChannelUID channelUID) {
         String channelId = channelUID.getId();
 
-        getDevice().ifPresent(device -> {
-            // may be called even if the device is not currently connected
-            if (device.isConnected()) {
-                channelHandlers.get(channelId).refreshSubscription(device, channelId, this);
-            }
-        });
-    }
-
-    /**
-     * Refresh channel subscriptions on all handlers.
-     *
-     * @param device must not be <code>null</code>
-     */
-    private void refreshAllChannelSubscriptions(ConnectableDevice device) {
-        channelHandlers.forEach((k, v) -> v.refreshSubscription(device, k, this));
-    }
-
-    // just to make sure, this device is registered, if it was powered off during initialization
-    @Override
-    public void onDeviceAdded(DiscoveryManager manager, ConnectableDevice device) {
-        if (device.getId().equals(deviceId)) {
-            device.removeListener(this);
-            device.addListener(this);
-            updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Device Ready");
-            device.connect();
+        if (socket.isConnected()) {
+            channelHandlers.get(channelId).refreshSubscription(channelId, this);
         }
-    }
 
-    @Override
-    public void onDeviceUpdated(DiscoveryManager manager, ConnectableDevice device) {
-        if (device.getId().equals(deviceId)) {
-            device.removeListener(this);
-            device.addListener(this);
-        }
-    }
-
-    @Override
-    public void onDeviceRemoved(DiscoveryManager manager, ConnectableDevice device) {
-        // NOP
-    }
-
-    @Override
-    public void onDiscoveryFailed(DiscoveryManager manager, ServiceCommandError error) {
-        // NOP
     }
 
     @Override

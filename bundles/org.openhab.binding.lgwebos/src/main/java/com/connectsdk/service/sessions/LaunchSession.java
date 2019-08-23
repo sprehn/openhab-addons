@@ -20,9 +20,10 @@
 
 package com.connectsdk.service.sessions;
 
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket;
+
 import com.connectsdk.core.JSONDeserializable;
 import com.connectsdk.core.JSONSerializable;
-import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -38,12 +39,12 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
     protected String sessionId;
     protected JsonElement rawData;
 
-    protected DeviceService service;
+    protected WebOSTVSocket socket;
     protected LaunchSessionType sessionType;
     // @endcond
 
     /**
-     * LaunchSession type is used to help DeviceService's know how to close a LunchSession.
+     * LaunchSession type is used to help DeviceService's know how to close a LaunchSession.
      */
     public enum LaunchSessionType {
         /** Unknown LaunchSession type, may be unable to close this launch session */
@@ -124,9 +125,9 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
         this.sessionId = sessionId;
     }
 
-    /** @return DeviceService responsible for launching the session. */
-    public DeviceService getService() {
-        return service;
+    /** @return WebOSTVSocket responsible for launching the session. */
+    public WebOSTVSocket getService() {
+        return socket;
     }
 
     /**
@@ -134,8 +135,8 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
      *
      * @param service Sets the DeviceService
      */
-    public void setService(DeviceService service) {
-        this.service = service;
+    public void setService(WebOSTVSocket service) {
+        this.socket = service;
     }
 
     /** @return Raw data from the first screen device about the session. In most cases, this is a JSONObject. */
@@ -175,7 +176,7 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
      * @param listener the response listener
      */
     public void close(ResponseListener<Object> listener) {
-        service.closeLaunchSession(this, listener);
+        socket.closeLaunchSession(this, listener);
     }
 
     // @cond INTERNAl
@@ -187,9 +188,7 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
         obj.addProperty("sessionId", sessionId);
         obj.addProperty("name", appName);
         obj.addProperty("sessionType", sessionType.name());
-        if (service != null) {
-            obj.addProperty("serviceName", service.getServiceName());
-        }
+
         obj.add("rawData", rawData);
 
         return obj;

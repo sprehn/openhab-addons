@@ -24,8 +24,11 @@ import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
 import org.eclipse.smarthome.io.net.http.WebSocketFactory;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@link LGWebOSHandlerFactory} is responsible for creating things and thing
@@ -36,7 +39,7 @@ import org.osgi.service.component.annotations.Reference;
 @NonNullByDefault
 @Component(service = ThingHandlerFactory.class, configurationPid = "binding.lgwebos")
 public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
-
+    private final Logger logger = LoggerFactory.getLogger(LGWebOSHandlerFactory.class);
     @NonNullByDefault({})
     private WebSocketClient webSocketClient;
 
@@ -62,4 +65,25 @@ public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
         }
         return null;
     }
+
+    @Override
+    protected void activate(ComponentContext componentContext) {
+        super.activate(componentContext);
+        try {
+            this.webSocketClient.start();
+        } catch (Exception e) {
+            logger.warn("Unable to to start websocket client.", e);
+        }
+    }
+
+    @Override
+    protected void deactivate(ComponentContext componentContext) {
+        super.deactivate(componentContext);
+        try {
+            this.webSocketClient.stop();
+        } catch (Exception e) {
+            logger.warn("Unable to to start websocket client.", e);
+        }
+    }
+
 }

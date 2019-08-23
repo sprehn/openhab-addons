@@ -26,21 +26,28 @@ import org.jupnp.registry.Registry;
 import org.jupnp.registry.RegistryListener;
 import org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants;
 import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This Upnp Discovery participant add the ability to auto discover LG Web OS devices on the network.
+ * Some users choose to not use upnp. Therefore this can only play an optional role and help discover the device.
+ *
+ * TODO: in order to detect devices without upnp we need to ping or find some other mechanism.
+ */
 @NonNullByDefault
-// @Component(immediate = true, configurationPid = "binding.lgwebos.upnp")
+@Component(immediate = true, configurationPid = "binding.lgwebos.upnp")
 public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant, RegistryListener {
 
     private final Logger logger = LoggerFactory.getLogger(LGWebOSUpnpDiscoveryParticipant.class);
 
     @NonNullByDefault({})
     private UpnpService upnpService;
-    @NonNullByDefault({})
 
+    @NonNullByDefault({})
     private final ServiceType serviceType = new ServiceType("lge-com", "webos-second-screen", 1);
 
     @NonNullByDefault({})
@@ -59,7 +66,6 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
     private void activate() {
         scheduler = ThreadPoolManager.getScheduledPool("LG WebOS Discovery");
         scheduler.scheduleAtFixedRate(() -> search(), 0, 10, TimeUnit.SECONDS);
-
         upnpService.getRegistry().addListener(this);
     }
 
@@ -86,49 +92,32 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
         return DiscoveryResultBuilder.create(thingUID).withLabel(device.getDetails().getFriendlyName())
                 .withProperty(PROPERTY_DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
                 .withProperty(PROPERTY_DEVICE_IP, device.getIdentity().getDescriptorURL().getHost())
-
                 .withProperty("friendlyName", device.getDetails().getFriendlyName())
                 .withProperty("modelName", device.getDetails().getModelDetails().getModelName())
                 .withProperty("modelNumber", device.getDetails().getModelDetails().getModelNumber())
-
                 .withProperty("descriptorUrl", device.getIdentity().getDescriptorURL())
                 .withProperty("serialNumber", device.getDetails().getSerialNumber())
                 .withProperty("manufacturer", device.getDetails().getManufacturerDetails().getManufacturer())
-
                 // .withProperty("lastConnected", Instant.now().toString())
                 .withProperty("lastDetection", Instant.now().toString())
                 // .withProperty(PROPERTY_DEVICE_HOST, )
-                /* .withRepresentationProperty(PROPERTY_DEVICE_ID) */.withThingType(THING_TYPE_WEBOSTV).build();
+                .withRepresentationProperty(PROPERTY_DEVICE_ID).withThingType(THING_TYPE_WEBOSTV).build();
     }
 
     @Override
     public @Nullable ThingUID getThingUID(RemoteDevice device) {
         /*
-         * "LG Smart TV" with service type urn:lge-com:service:webos-second-screen:1
-         * does not automatically show up by the normal background scans.
-         * an actual ssdp search request is required first.
-         *
-         * the device does announce itself via broadcasts as:
-         * device:
-         * type= urn:schemas-upnp-org:device:MediaRenderer:1
-         * UDADeviceType
-         * with the following services:
-         * urn:schemas-upnp-org:service:AVTransport:1
-         * urn:schemas-upnp-org:service:ConnectionManager:1
-         * urn:schemas-upnp-org:service:RenderingControl:1
-         * modelName "LG TV"
-         * but those devices have different UDNs as well
+         * LG WebOS TV does not automatically show up by the normal background scans.
+         * A special ssdp search request for lge-com:service:webos-second-screen:1 is required first.
          */
 
         if (device.findService(serviceType) != null) {
-            logger.debug("found MATCHING device {}", device);
+            logger.debug("Found LG WebOS TV: {}", device);
             // || "LG TV".equals(device.getDetails().getModelDetails().getModelName())) {
             return new ThingUID(THING_TYPE_WEBOSTV, device.getIdentity().getUdn().getIdentifierString());
-        } else {
-            logger.debug("found non matching device {}", device);
         }
 
-        return null;
+        return null; // device not supported by this participant
     }
 
     private void search() {
@@ -138,28 +127,31 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
     // RegistryListener
     @Override
     public void afterShutdown() {
-
+        // intentionally empty
     }
 
     @Override
-    public void beforeShutdown(@Nullable Registry arg0) {
-
+    public void beforeShutdown(@Nullable Registry registry) {
+        // intentionally empty
     }
 
     @Override
-    public void localDeviceAdded(@Nullable Registry arg0, @Nullable LocalDevice device) {
+    public void localDeviceAdded(@Nullable Registry registry, @Nullable LocalDevice device) {
         logger.debug("local device added {}", device);
     }
 
     @Override
-    public void localDeviceRemoved(@Nullable Registry arg0, @Nullable LocalDevice device) {
+    public void localDeviceRemoved(@Nullable Registry registry, @Nullable LocalDevice device) {
         logger.debug("local device removed {}", device);
-
     }
 
     @Override
-    public void remoteDeviceAdded(@Nullable Registry arg0, @Nullable RemoteDevice device) {
+    public void remoteDeviceAdded(@Nullable Registry registry, @Nullable RemoteDevice device) {
+        if (device == null) {
+            throw new IllegalArgumentException("Device parameter was null");
+        }
         logger.debug("remote device added {}", device);
+
         RemoteService remoteService = device.findService(serviceType);
         if (remoteService != null) {
             /*
@@ -192,24 +184,30 @@ public class LGWebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant
     }
 
     @Override
-    public void remoteDeviceDiscoveryFailed(@Nullable Registry arg0, @Nullable RemoteDevice arg1,
-            @Nullable Exception arg2) {
+    public void remoteDeviceDiscoveryFailed(@Nullable Registry registry, @Nullable RemoteDevice device,
+            @Nullable Exception exception) {
+        logger.debug("remote device removed - {} {}", device, exception);
+        // intentionally empty
     }
 
     @Override
-    public void remoteDeviceDiscoveryStarted(@Nullable Registry arg0, @Nullable RemoteDevice arg1) {
+    public void remoteDeviceDiscoveryStarted(@Nullable Registry registry, @Nullable RemoteDevice device) {
+        // intentionally empty
     }
 
     @Override
-    public void remoteDeviceRemoved(@Nullable Registry arg0, @Nullable RemoteDevice device) {
-        logger.debug("remote device removed {}", device); // <-- TODO mark offline
+    public void remoteDeviceRemoved(@Nullable Registry registry, @Nullable RemoteDevice device) {
+        if (device == null) {
+            throw new IllegalArgumentException("Device parameter was null");
+        }
+        logger.debug("remote device removed - ID: {} and IP: {}", device.getIdentity().getUdn().getIdentifierString(),
+                device.getIdentity().getDescriptorURL().getHost());
+
     }
 
     @Override
-    public void remoteDeviceUpdated(@Nullable Registry arg0, @Nullable RemoteDevice device) {
-        logger.debug("remote device updated {}", device);
-
-        // TODO add timeout, so that device disappears if unseen for a while (even if it did not send byebye maybe due
-        // to sudden power loss)
+    public void remoteDeviceUpdated(@Nullable Registry registry, @Nullable RemoteDevice device) {
+        logger.debug("remote device updated and still alive {}", device);
+        // nothing to do
     }
 }

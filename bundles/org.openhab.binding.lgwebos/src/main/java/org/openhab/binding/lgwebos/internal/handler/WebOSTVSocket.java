@@ -3,13 +3,18 @@ package org.openhab.binding.lgwebos.internal.handler;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.websocket.api.Session;
@@ -19,14 +24,24 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.openhab.binding.lgwebos.internal.handler.WebOSTVMouseSocket.WebOSTVMouseSocketListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.connectsdk.core.AppInfo;
+import com.connectsdk.core.ChannelInfo;
+import com.connectsdk.core.ProgramInfo;
+import com.connectsdk.core.TextInputStatusInfo;
+import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.sessions.LaunchSession;
+import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /**
@@ -41,21 +56,21 @@ public class WebOSTVSocket {
     private static final int PORT = 3001;
 
     public enum State {
-        INITIAL,
+        DISCONNECTED,
         CONNECTING,
         REGISTERING,
         REGISTERED,
         DISCONNECTING
     }
 
-    private State state = State.INITIAL;
+    private State state = State.DISCONNECTED;
 
     private final WebOSTVStore configStore;
     private final WebSocketClient client;
     private @Nullable Session session;
     private final URI destUri;
     private @Nullable WebOSTVSocketListener listener;
-
+    private final WebOSTVKeyboardInput keyboardInput;
     /**
      * Requests to which we are awaiting response.
      */
@@ -69,6 +84,7 @@ public class WebOSTVSocket {
     public WebOSTVSocket(WebSocketClient client, WebOSTVStore configStore, String ipAddress) {
         this.configStore = configStore;
         this.client = client;
+        this.keyboardInput = new WebOSTVKeyboardInput(this);
 
         try {
             this.destUri = new URI("wss://" + ipAddress + ":" + PORT);
@@ -81,6 +97,12 @@ public class WebOSTVSocket {
         return state;
     }
 
+    private void setState(State state) {
+        State oldState = this.state;
+        this.state = state;
+        Optional.ofNullable(this.listener).ifPresent(l -> l.onStateChanged(oldState, this.state));
+    }
+
     public void setListener(@Nullable WebOSTVSocketListener listener) {
         this.listener = listener;
     }
@@ -91,48 +113,38 @@ public class WebOSTVSocket {
 
     public void connect() {
         synchronized (this) {
-            if (state != State.INITIAL) {
+            if (state != State.DISCONNECTED) {
                 logger.debug("Already connecting; not trying to connect again: " + state);
                 return;
             }
-
-            state = State.CONNECTING;
+            setState(State.CONNECTING);
         }
 
         try {
-            this.client.start();
             this.client.connect(this, this.destUri);
             logger.debug("Connecting to: {}", this.destUri);
         } catch (Exception e) {
-            connectionError(e);
+            logger.warn("Unable to connect.", e);
+            setState(State.DISCONNECTED);
         }
     }
 
     public void disconnect() {
-        this.state = State.DISCONNECTING;
+        setState(State.DISCONNECTING);
         try {
-            if (this.session != null) {
-                this.session.close();
-            }
-            client.stop();
-            this.state = State.INITIAL;
+            Optional.ofNullable(this.session).ifPresent(s -> s.close());
         } catch (Exception e) {
-            connectionError(e);
+            logger.warn("Error while closing session.", e);
         }
-    }
-
-    private void connectionError(Exception e) {
-        this.state = State.INITIAL;
-        logger.debug("Error connecting to device.", e);
-        // handler.updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.OFFLINE.COMMUNICATION_ERROR);
+        setState(State.DISCONNECTED);
     }
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
-        this.state = State.INITIAL;
         logger.debug("WebSocket Closed - Code: {}, Reason: {}", statusCode, reason);
         this.requests.clear();
         this.session = null;
+        setState(State.DISCONNECTED);
     }
 
     @OnWebSocketConnect
@@ -157,7 +169,7 @@ public class WebOSTVSocket {
     }
 
     private void sendRegister() {
-        this.state = State.REGISTERING;
+        setState(State.REGISTERING);
 
         JsonObject packet = new JsonObject();
         packet.addProperty("id", this.nextRequestId++);
@@ -217,7 +229,7 @@ public class WebOSTVSocket {
                 logger.debug("Queuing command for {}", command.getTarget());
                 offlineBuffer.add(command);
                 break;
-            case INITIAL:
+            case DISCONNECTED:
             case DISCONNECTING:
                 logger.debug("Queuing command and (re-)starting socket for {}", command.getTarget());
                 offlineBuffer.add(command);
@@ -226,7 +238,7 @@ public class WebOSTVSocket {
         }
     }
 
-    public void unsubscribe(URLServiceSubscription<?, ?> subscription) {
+    public void unsubscribe(ServiceSubscription<?> subscription) {
         Optional<Entry<Integer, ServiceCommand<?, ?>>> entry = this.requests.entrySet().stream()
                 .filter(e -> e.getValue().equals(subscription)).findFirst();
         if (entry.isPresent()) {
@@ -241,15 +253,16 @@ public class WebOSTVSocket {
 
     public void sendMessage(JsonObject json) {
         String msg = GSON.toJson(json);
+        Session s = this.session;
         try {
-            if (this.session != null) {
+            if (s != null) {
                 logger.debug("Message [out]: {}", msg);
-                this.session.getRemote().sendString(msg);
+                s.getRemote().sendString(msg);
             } else {
                 logger.warn("No Connection to TV, skipping [out]: {}", msg);
             }
         } catch (IOException e) {
-            connectionError(e);
+            logger.error("Unable to send message.", e);
         }
     }
 
@@ -312,7 +325,7 @@ public class WebOSTVSocket {
                     break;
                 }
                 configStore.setKey(response.getPayload().getAsJsonObject().get("client-key").getAsString());
-                this.state = State.REGISTERED;
+                setState(State.REGISTERED);
 
                 while (this.offlineBuffer.size() > 0) {
                     sendCommand(this.offlineBuffer.remove());
@@ -324,8 +337,8 @@ public class WebOSTVSocket {
 
     @OnWebSocketError
     public void onError(Throwable cause) {
-        // voHandler.updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-        logger.debug("Connection Error: {}", cause.getMessage());
+        Optional.ofNullable(this.listener).ifPresent(l -> l.onError(cause.getMessage()));
+        logger.debug("Connection Error.", cause);
     }
 
     public boolean isConnected() {
@@ -334,13 +347,495 @@ public class WebOSTVSocket {
 
     public interface WebOSTVSocketListener {
 
-        public void onConnect();
+        public void onStateChanged(State oldState, State newState);
 
-        public void onCloseWithError(ServiceCommandError error);
-
-        public void onFailWithError(ServiceCommandError error);
-
-        public Boolean onReceiveMessage(JsonObject message);
+        public void onError(String errorMessage);
 
     }
+
+    private Function<JsonObject, Boolean> MUTE_STATUS_CONVERTER = (jsonObj) -> jsonObj.get("mute").getAsBoolean();
+
+    public ServiceSubscription<ResponseListener<Boolean>> subscribeMute(ResponseListener<Boolean> listener) {
+        URLServiceSubscription<Boolean, ResponseListener<Boolean>> request = new URLServiceSubscription<>(MUTE, null,
+                true, MUTE_STATUS_CONVERTER, listener);
+        sendCommand(request);
+        return request;
+    }
+
+    private static final Function<JsonObject, Float> VOLUME_CONVERTER = (
+            jsonObj) -> (float) (jsonObj.get("volume").getAsInt() / 100.0);
+
+    private static String FOREGROUND_APP = "ssap://com.webos.applicationManager/getForegroundAppInfo";
+    private static String APP_STATUS = "ssap://com.webos.service.appstatus/getAppStatus";
+    private static String APP_STATE = "ssap://system.launcher/getAppState";
+    private static String VOLUME = "ssap://audio/getVolume";
+    private static String MUTE = "ssap://audio/getMute";
+    private static String VOLUME_STATUS = "ssap://audio/getStatus";
+    private static String CHANNEL_LIST = "ssap://tv/getChannelList";
+    private static String CHANNEL = "ssap://tv/getCurrentChannel";
+    private static String PROGRAM = "ssap://tv/getChannelProgramInfo";
+    private static String CURRENT_PROGRAM = "ssap://tv/getChannelCurrentProgramInfo";
+    private static String THREED_STATUS = "ssap://com.webos.service.tv.display/get3DStatus";
+
+    public ServiceSubscription<ResponseListener<Float>> subscribeVolume(ResponseListener<Float> listener) {
+        URLServiceSubscription<Float, ResponseListener<Float>> request = new URLServiceSubscription<>(VOLUME, null,
+                true, VOLUME_CONVERTER, listener);
+        sendCommand(request);
+        return request;
+    }
+
+    public void setMute(boolean isMute, ResponseListener<Object> listener) {
+        String uri = "ssap://audio/setMute";
+        JsonObject payload = new JsonObject();
+        payload.addProperty("mute", isMute);
+
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, payload, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void setVolume(float volume, ResponseListener<Object> listener) {
+        String uri = "ssap://audio/setVolume";
+        JsonObject payload = new JsonObject();
+        int intVolume = Math.round(volume * 100.0f);
+        payload.addProperty("volume", intVolume);
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, payload, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void volumeUp(ResponseListener<Object> listener) {
+        String uri = "ssap://audio/volumeUp";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void volumeDown(ResponseListener<Object> listener) {
+        String uri = "ssap://audio/volumeDown";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+
+        sendCommand(request);
+    }
+
+    public ServiceSubscription<ResponseListener<ChannelInfo>> subscribeCurrentChannel(
+            ResponseListener<ChannelInfo> listener) {
+        URLServiceSubscription<ChannelInfo, ResponseListener<ChannelInfo>> request = new URLServiceSubscription<>(
+                CHANNEL, null, true, jsonObj -> parseRawChannelData(jsonObj), listener);
+        sendCommand(request);
+        return request;
+    }
+
+    private ProgramInfo parseRawProgramInfo(JsonObject programRawData) {
+        String programId;
+        String programName;
+
+        ProgramInfo programInfo = new ProgramInfo();
+        programInfo.setRawData(programRawData);
+
+        programId = programRawData.get("programId").getAsString();
+        programName = programRawData.get("programName").getAsString();
+        ChannelInfo channelInfo = parseRawChannelData(programRawData);
+
+        programInfo.setId(programId);
+        programInfo.setName(programName);
+        programInfo.setChannelInfo(channelInfo);
+
+        return programInfo;
+    }
+
+    private ChannelInfo parseRawChannelData(JsonObject channelRawData) {
+        String channelName = null;
+        String channelId = null;
+        String channelNumber = null;
+        int minorNumber;
+        int majorNumber;
+
+        ChannelInfo channelInfo = new ChannelInfo();
+        channelInfo.setRawData(channelRawData);
+
+        if (!channelRawData.has("channelName")) {
+            channelName = channelRawData.get("channelName").getAsString();
+        }
+
+        if (!channelRawData.has("channelId")) {
+            channelId = channelRawData.get("channelId").getAsString();
+        }
+
+        channelNumber = channelRawData.get("channelNumber").getAsString();
+
+        if (!channelRawData.has("majorNumber")) {
+            majorNumber = channelRawData.get("majorNumber").getAsInt();
+        } else {
+            majorNumber = parseMajorNumber(channelNumber);
+        }
+
+        if (!channelRawData.has("minorNumber")) {
+            minorNumber = channelRawData.get("minorNumber").getAsInt();
+        } else {
+            minorNumber = parseMinorNumber(channelNumber);
+        }
+
+        channelInfo.setName(channelName);
+        channelInfo.setId(channelId);
+        channelInfo.setNumber(channelNumber);
+        channelInfo.setMajorNumber(majorNumber);
+        channelInfo.setMinorNumber(minorNumber);
+
+        return channelInfo;
+    }
+
+    private int parseMinorNumber(String channelNumber) {
+        if (channelNumber != null) {
+            String tokens[] = channelNumber.split("-");
+            return Integer.parseInt(tokens[tokens.length - 1]);
+        } else {
+            return 0;
+        }
+    }
+
+    private int parseMajorNumber(String channelNumber) {
+        if (channelNumber != null) {
+            String tokens[] = channelNumber.split("-");
+            return Integer.parseInt(tokens[0]);
+        } else {
+            return 0;
+        }
+    }
+
+    public void setChannel(ChannelInfo channelInfo, ResponseListener<Object> listener) {
+        JsonObject payload = new JsonObject();
+        if (channelInfo.getId() != null) {
+            payload.addProperty("channelId", channelInfo.getId());
+        }
+        if (channelInfo.getNumber() != null) {
+            payload.addProperty("channelNumber", channelInfo.getNumber());
+        }
+        setChannel(payload, listener);
+    }
+
+    private void setChannel(JsonObject payload, ResponseListener<Object> listener) {
+        String uri = "ssap://tv/openChannel";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, payload, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    private final Function<JsonObject, List<ChannelInfo>> CHANNEL_LIST_CONVERTER = jsonObj -> {
+        List<ChannelInfo> list = new ArrayList<>();
+        jsonObj.get("channelList").getAsJsonArray()
+                .forEach(element -> list.add(parseRawChannelData(element.getAsJsonObject())));
+        return list;
+    };
+
+    public void channelUp(ResponseListener<Object> listener) {
+        String uri = "ssap://tv/channelUp";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void channelDown(ResponseListener<Object> listener) {
+        String uri = "ssap://tv/channelDown";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void getChannelList(ResponseListener<List<ChannelInfo>> listener) {
+        ServiceCommand<List<ChannelInfo>, ResponseListener<List<ChannelInfo>>> request = new ServiceCommand<>(
+                CHANNEL_LIST, null, true, CHANNEL_LIST_CONVERTER, listener);
+        sendCommand(request);
+    }
+
+    // TOAST
+
+    public void showToast(String message, ResponseListener<Object> listener) {
+        showToast(message, null, null, listener);
+    }
+
+    public void showToast(String message, @Nullable String iconData, @Nullable String iconExtension,
+            ResponseListener<Object> listener) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("message", message);
+
+        if (iconData != null && iconExtension != null) {
+            payload.addProperty("iconData", iconData);
+            payload.addProperty("iconExtension", iconExtension);
+        }
+
+        sendToast(payload, listener);
+    }
+
+    private void sendToast(JsonObject payload, ResponseListener<Object> listener) {
+        String uri = "ssap://system.notifications/createToast";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, payload, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    // POWER
+    public void powerOff(ResponseListener<Object> listener) {
+        String uri = "ssap://system/turnOff";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    // MEDIA CONTROL
+    public void play(ResponseListener<Object> listener) {
+        String uri = "ssap://media.controls/play";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void pause(ResponseListener<Object> listener) {
+        String uri = "ssap://media.controls/pause";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void stop(ResponseListener<Object> listener) {
+        String uri = "ssap://media.controls/stop";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void rewind(ResponseListener<Object> listener) {
+        String uri = "ssap://media.controls/rewind";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    public void fastForward(ResponseListener<Object> listener) {
+        String uri = "ssap://media.controls/fastForward";
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+    }
+
+    // APPS
+
+    public void getAppList(final ResponseListener<List<AppInfo>> listener) {
+        String uri = "ssap://com.webos.applicationManager/listApps";
+
+        ServiceCommand<List<AppInfo>, ResponseListener<List<AppInfo>>> request = new ServiceCommand<>(uri, null, true,
+                jsonObj -> {
+                    JsonArray apps = jsonObj.get("apps").getAsJsonArray();
+                    List<AppInfo> appList = new ArrayList<AppInfo>();
+                    apps.forEach(app -> {
+                        JsonObject obj = app.getAsJsonObject();
+                        AppInfo appInfo = new AppInfo() {
+                            {
+                                setId(obj.get("id").getAsString());
+                                setName(obj.get("title").getAsString());
+                                setRawData(obj);
+                            }
+                        };
+
+                        appList.add(appInfo);
+                    });
+                    return appList;
+                }, listener);
+
+        sendCommand(request);
+    }
+
+    public void launchApp(String appId, ResponseListener<LaunchSession> listener) {
+        AppInfo appInfo = new AppInfo();
+        appInfo.setId(appId);
+        launchAppWithInfo(appInfo, listener);
+    }
+
+    public void launchAppWithInfo(AppInfo appInfo, ResponseListener<LaunchSession> listener) {
+        launchAppWithInfo(appInfo, null, listener);
+    }
+
+    public void launchAppWithInfo(final AppInfo appInfo, @Nullable JsonObject params,
+            final ResponseListener<LaunchSession> listener) {
+        String uri = "ssap://system.launcher/launch";
+        JsonObject payload = new JsonObject();
+
+        final String appId = appInfo.getId();
+
+        String contentId = null;
+
+        if (params != null) {
+            contentId = params.get("contentId").getAsString();
+        }
+
+        payload.addProperty("id", appId);
+
+        if (contentId != null) {
+            payload.addProperty("contentId", contentId);
+        }
+
+        if (params != null) {
+            payload.add("params", params);
+        }
+
+        ServiceCommand<LaunchSession, ResponseListener<LaunchSession>> request = new ServiceCommand<>(uri, payload,
+                true, obj -> {
+                    LaunchSession launchSession = new LaunchSession();
+                    launchSession.setService(this);
+                    launchSession.setAppId(appId); // note that response uses id to mean appId
+                    launchSession.setSessionId(obj.get("sessionId").getAsString());
+                    launchSession.setSessionType(LaunchSessionType.App);
+                    return launchSession;
+                }, listener);
+        sendCommand(request);
+    }
+
+    public void launchBrowser(String url, final ResponseListener<LaunchSession> listener) {
+        String uri = "ssap://system.launcher/open";
+        JsonObject payload = new JsonObject();
+        payload.addProperty("target", url);
+
+        ServiceCommand<LaunchSession, ResponseListener<LaunchSession>> request = new ServiceCommand<>(uri, payload,
+                true, obj -> new LaunchSession() {
+                    {
+                        setService(WebOSTVSocket.this);
+                        setAppId(obj.get("id").getAsString()); // note that response uses id to mean appId
+                        setSessionId(obj.get("sessionId").getAsString());
+                        setSessionType(LaunchSessionType.App);
+                        setRawData(obj);
+                    }
+                }, listener);
+        sendCommand(request);
+    }
+
+    public void closeLaunchSession(LaunchSession launchSession, ResponseListener<Object> listener) {
+        WebOSTVSocket service = launchSession.getService();
+
+        switch (launchSession.getSessionType()) {
+            case App:
+            case ExternalInputPicker:
+                service.closeApp(launchSession, listener);
+                break;
+            /*
+             * case Media:
+             * if (service instanceof MediaPlayer) {
+             * ((MediaPlayer) service).closeMedia(launchSession, listener);
+             * }
+             * break;
+             *
+             *
+             * case WebApp:
+             * if (service instanceof WebAppLauncher) {
+             * ((WebAppLauncher) service).closeWebApp(launchSession, listener);
+             * }
+             * break;
+             * case Unknown:
+             */
+            default:
+                listener.onError(
+                        new ServiceCommandError("This DeviceService does not know ho to close this LaunchSession"));
+                break;
+        }
+    }
+
+    public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener) {
+        String uri = "ssap://system.launcher/close";
+        String appId = launchSession.getAppId();
+        String sessionId = launchSession.getSessionId();
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("id", appId);
+        payload.addProperty("sessionId", sessionId);
+
+        ServiceCommand<Object, ResponseListener<Object>> request = new ServiceCommand<>(uri, payload, true, x -> x,
+                listener);
+        launchSession.getService().sendCommand(request);
+    }
+
+    public ServiceSubscription<ResponseListener<AppInfo>> subscribeRunningApp(ResponseListener<AppInfo> listener) {
+        URLServiceSubscription<AppInfo, ResponseListener<AppInfo>> request = new URLServiceSubscription<>(
+                FOREGROUND_APP, null, true, jsonObj -> new AppInfo() {
+                    {
+                        setId(jsonObj.get("appId").getAsString());
+                        setName(jsonObj.get("appName").getAsString());
+                        setRawData(jsonObj);
+                    }
+                }, listener);
+        sendCommand(request);
+        return request;
+
+    }
+
+    // KEYBOARD
+
+    public ServiceSubscription<ResponseListener<TextInputStatusInfo>> subscribeTextInputStatus(
+            ResponseListener<TextInputStatusInfo> listener) {
+        return keyboardInput.connect(listener);
+    }
+
+    public void sendText(String input) {
+        keyboardInput.addToQueue(input);
+    }
+
+    public void sendEnter() {
+        keyboardInput.sendEnter();
+    }
+
+    public void sendDelete() {
+        keyboardInput.sendDel();
+    }
+
+    // MOUSE
+
+    public void executeMouse(Consumer<WebOSTVMouseSocket> onConnected) {
+        WebOSTVMouseSocket mouseSocket = new WebOSTVMouseSocket(this.client);
+        mouseSocket.setListener(new WebOSTVMouseSocketListener() {
+
+            @Override
+            public void onStateChanged(WebOSTVMouseSocket.State oldState, WebOSTVMouseSocket.State newState) {
+                switch (newState) {
+                    case CONNECTED:
+                        onConnected.accept(mouseSocket);
+                        mouseSocket.disconnect();
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+
+            @Override
+            public void onError(@NonNull String errorMessage) {
+                logger.debug("Error in communication with Mouse Socket: {}", errorMessage);
+            }
+        });
+
+        String uri = "ssap://com.webos.service.networkinput/getPointerInputSocket";
+
+        ResponseListener<JsonObject> listener = new ResponseListener<JsonObject>() {
+
+            @Override
+            public void onSuccess(JsonObject jsonObj) {
+                String socketPath = jsonObj.get("socketPath").getAsString().replace("wss:", "ws:").replace(":3001/",
+                        ":3000/");
+                try {
+                    mouseSocket.connect(new URI(socketPath));
+                } catch (URISyntaxException e) {
+                    logger.warn("Connect mouse error: {}", e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(ServiceCommandError error) {
+                logger.warn("Connect mouse error: {}", error.getMessage());
+            }
+        };
+
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(uri, null, true, x -> x,
+                listener);
+        sendCommand(request);
+
+    }
+
 }

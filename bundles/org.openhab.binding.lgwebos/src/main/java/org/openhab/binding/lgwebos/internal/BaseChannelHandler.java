@@ -18,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
@@ -50,28 +50,27 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
     };
 
     // IP to Subscriptions map
-    private Map<String, ServiceSubscription<T>> subscriptions = new ConcurrentHashMap<>();
+    private Map<ThingUID, ServiceSubscription<T>> subscriptions = new ConcurrentHashMap<>();
 
     @Override
-    public void onDeviceReady(ConnectableDevice device, String channelId, LGWebOSHandler handler) {
+    public void onDeviceReady(String channelId, LGWebOSHandler handler) {
         // NOP
     }
 
     @Override
-    public void onDeviceRemoved(ConnectableDevice device, String channelId, LGWebOSHandler handler) {
+    public void onDeviceRemoved(String channelId, LGWebOSHandler handler) {
         // NOP
     }
 
     @Override
-    public final synchronized void refreshSubscription(ConnectableDevice device, String channelId,
-            LGWebOSHandler handler) {
-        removeAnySubscription(device);
+    public final synchronized void refreshSubscription(String channelId, LGWebOSHandler handler) {
+        removeAnySubscription(handler);
         if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured for this channel
-            Optional<ServiceSubscription<T>> listener = getSubscription(device, channelId, handler);
+            Optional<ServiceSubscription<T>> listener = getSubscription(channelId, handler);
 
             if (listener.isPresent()) {
-                logger.debug("Subscribed {} on IP: {}", this.getClass().getName(), device.getIpAddress());
-                subscriptions.put(device.getIpAddress(), listener.get());
+                logger.debug("Subscribed {} on IP: {}", this.getClass().getName(), handler.getThing().getUID());
+                subscriptions.put(handler.getThing().getUID(), listener.get());
             }
         }
     }
@@ -85,17 +84,16 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
      * @return an {@code Optional} containing the ServiceSubscription, or an empty {@code Optional} if subscription is
      *         not supported.
      */
-    protected Optional<ServiceSubscription<T>> getSubscription(ConnectableDevice device, String channelId,
-            LGWebOSHandler handler) {
+    protected Optional<ServiceSubscription<T>> getSubscription(String channelId, LGWebOSHandler handler) {
         return Optional.empty();
     }
 
     @Override
-    public final synchronized void removeAnySubscription(ConnectableDevice device) {
-        ServiceSubscription<T> l = subscriptions.remove(device.getIpAddress());
+    public final synchronized void removeAnySubscription(LGWebOSHandler handler) {
+        ServiceSubscription<T> l = subscriptions.remove(handler.getThing().getUID());
         if (l != null) {
-            l.unsubscribe();
-            logger.debug("Unsubscribed {} on IP: {}", this.getClass().getName(), device.getIpAddress());
+            handler.getSocket().unsubscribe(l);
+            logger.debug("Unsubscribed {} on IP: {}", this.getClass().getName(), handler.getThing().getUID());
         }
     }
 
@@ -103,19 +101,4 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
         return defaultResponseListener;
     }
 
-    /**
-     * A convenience method that calls device.hasCapability, but logs a message if the result is false.
-     *
-     * @param device the webos tv
-     * @param capability the capability to check
-     *
-     */
-    protected boolean hasCapability(ConnectableDevice device, String capability) {
-        boolean result = device.hasCapability(capability);
-        if (!result) {
-            logger.debug("Device {} does not have capability {} as required by handler {}", device.getFriendlyName(),
-                    capability, this.getClass().getName());
-        }
-        return result;
-    }
 }

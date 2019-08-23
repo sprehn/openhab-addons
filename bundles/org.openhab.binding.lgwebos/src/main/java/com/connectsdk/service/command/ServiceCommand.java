@@ -33,13 +33,8 @@ import com.google.gson.JsonObject;
 public class ServiceCommand<X, T extends ResponseListener<X>> {
     // public static final String TYPE_REQ = "request";
     public static final String TYPE_SUB = "subscribe";
-    public static final String TYPE_GET = "GET";
-    public static final String TYPE_POST = "POST";
-    // public static final String TYPE_DEL = "DELETE";
-    // public static final String TYPE_PUT = "PUT";
 
-    protected ServiceCommandProcessor processor;
-    protected String type; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
+    protected String type; // WebOSTV: {request, subscribe},
     protected JsonObject payload;
     protected String target;
     protected Function<JsonObject, X> converter;
@@ -48,9 +43,8 @@ public class ServiceCommand<X, T extends ResponseListener<X>> {
 
     T responseListener;
 
-    public ServiceCommand(ServiceCommandProcessor processor, String targetURL, JsonObject payload, boolean isWebOS,
-            Function<JsonObject, X> converter, T listener) {
-        this.processor = processor;
+    public ServiceCommand(String targetURL, JsonObject payload, boolean isWebOS, Function<JsonObject, X> converter,
+            T listener) {
         this.target = targetURL;
         this.payload = payload;
         this.converter = converter;
@@ -58,14 +52,6 @@ public class ServiceCommand<X, T extends ResponseListener<X>> {
         this.type = "request";
         requestId = -1;
 
-    }
-
-    public void send() {
-        processor.sendCommand(this);
-    }
-
-    public ServiceCommandProcessor getCommandProcessor() {
-        return processor;
     }
 
     public JsonElement getPayload() {

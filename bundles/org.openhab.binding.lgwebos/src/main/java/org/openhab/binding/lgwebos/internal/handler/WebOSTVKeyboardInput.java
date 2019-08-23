@@ -18,14 +18,12 @@
  * limitations under the License.
  */
 
-package com.connectsdk.service.webos;
+package org.openhab.binding.lgwebos.internal.handler;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.connectsdk.core.TextInputStatusInfo;
-import com.connectsdk.service.WebOSTVService;
-import com.connectsdk.service.capability.TextInputControl.TextInputStatusListener;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
@@ -34,18 +32,17 @@ import com.google.gson.JsonObject;
 
 public class WebOSTVKeyboardInput {
 
-    WebOSTVService service;
-    boolean waiting;
-    List<String> toSend;
+    private WebOSTVSocket service;
+    private boolean waiting;
+    private final List<String> toSend;
 
-    static String KEYBOARD_INPUT = "ssap://com.webos.service.ime/registerRemoteKeyboard";
-    static String ENTER = "ENTER";
-    static String DELETE = "DELETE";
+    private static final String KEYBOARD_INPUT = "ssap://com.webos.service.ime/registerRemoteKeyboard";
+    private static final String ENTER = "ENTER";
+    private static final String DELETE = "DELETE";
 
-    public WebOSTVKeyboardInput(WebOSTVService service) {
+    public WebOSTVKeyboardInput(WebOSTVSocket service) {
         this.service = service;
         waiting = false;
-
         toSend = new ArrayList<String>();
     }
 
@@ -130,18 +127,17 @@ public class WebOSTVKeyboardInput {
             }
         };
 
-        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(service, uri, payload,
-                true, x -> x, responseListener);
-        request.send();
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(uri, payload, true,
+                x -> x, responseListener);
+        service.sendCommand(request);
     }
 
-    public URLServiceSubscription<TextInputStatusInfo, TextInputStatusListener> connect(
-            final TextInputStatusListener listener) {
-        JsonObject response = null;
+    public URLServiceSubscription<TextInputStatusInfo, ResponseListener<TextInputStatusInfo>> connect(
+            final ResponseListener<TextInputStatusInfo> listener) {
 
-        URLServiceSubscription<TextInputStatusInfo, TextInputStatusListener> subscription = new URLServiceSubscription<>(
-                service, KEYBOARD_INPUT, null, true, rawData -> parseRawKeyboardData(rawData), listener);
-        subscription.send();
+        URLServiceSubscription<TextInputStatusInfo, ResponseListener<TextInputStatusInfo>> subscription = new URLServiceSubscription<>(
+                KEYBOARD_INPUT, null, true, rawData -> parseRawKeyboardData(rawData), listener);
+        service.sendCommand(subscription);
 
         return subscription;
     }
@@ -193,7 +189,4 @@ public class WebOSTVKeyboardInput {
         return keyboard;
     }
 
-    // public void disconnect() {
-    // subscription.unsubscribe();
-    // }
 }

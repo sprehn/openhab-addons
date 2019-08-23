@@ -41,28 +41,11 @@ public class URLServiceSubscription<X, T extends ResponseListener<X>> extends Se
      * }
      */
 
-    public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JsonObject payload, boolean isWebOS,
-            Function<JsonObject, X> converter, T listener) {
-        super(processor, uri, payload, isWebOS, converter, listener);
+    public URLServiceSubscription(String uri, JsonObject payload, boolean isWebOS, Function<JsonObject, X> converter,
+            T listener) {
+        super(uri, payload, isWebOS, converter, listener);
 
         type = TYPE_SUB;
-    }
-
-    @Override
-    public void send() {
-        this.subscribe();
-    }
-
-    public void subscribe() {
-        if (!(type.equalsIgnoreCase(TYPE_GET) || type.equalsIgnoreCase(TYPE_POST))) {
-            type = TYPE_SUB;
-        }
-        processor.sendCommand(this);
-    }
-
-    @Override
-    public void unsubscribe() {
-        processor.unsubscribe(this);
     }
 
     @Override

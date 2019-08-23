@@ -2,6 +2,7 @@ package org.openhab.binding.lgwebos.internal.handler;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Optional;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -21,7 +22,7 @@ public class WebOSTVMouseSocket {
     private final Logger logger = LoggerFactory.getLogger(WebOSTVMouseSocket.class);
 
     public enum State {
-        INITIAL,
+        DISCONNECTED,
         CONNECTING,
         CONNECTED,
         DISCONNECTING
@@ -36,64 +37,68 @@ public class WebOSTVMouseSocket {
         RIGHT,
     }
 
-    private State state = State.INITIAL;
+    private State state = State.DISCONNECTED;
     private final WebSocketClient client;
     private @Nullable Session session;
-    private @Nullable Runnable onConnected;
+    private @Nullable WebOSTVMouseSocketListener listener;
 
     public WebOSTVMouseSocket(WebSocketClient client) {
         this.client = client;
-        /*
-         * try {
-         * this.destUri = new URI(path.replace("wss:", "ws:").replace(":3001/", ":3000/")); // downgrade to plaintext
-         * } catch (URISyntaxException e) {
-         * throw new IllegalArgumentException("Path provided is invalid: " + path);
-         * }
-         */
     }
 
-    public void connect(URI destUri, @Nullable Runnable onConnected) {
+    public State getState() {
+        return state;
+    }
+
+    private void setState(State state) {
+        State oldState = this.state;
+        this.state = state;
+        Optional.ofNullable(this.listener).ifPresent(l -> l.onStateChanged(oldState, this.state));
+    }
+
+    public interface WebOSTVMouseSocketListener {
+
+        public void onStateChanged(State oldState, State newState);
+
+        public void onError(String errorMessage);
+
+    }
+
+    public void setListener(@Nullable WebOSTVMouseSocketListener listener) {
+        this.listener = listener;
+    }
+
+    public void connect(URI destUri) {
         synchronized (this) {
-            if (state != State.INITIAL) {
+            if (state != State.DISCONNECTED) {
                 logger.debug("Already connecting; not trying to connect again: " + state);
                 return;
             }
-
-            state = State.CONNECTING;
+            setState(State.CONNECTING);
         }
 
-        this.onConnected = onConnected;
         try {
-            this.client.start();
             this.client.connect(this, destUri);
             logger.debug("Connecting to: {}", destUri);
         } catch (Exception e) {
-            connectionError(e);
+            logger.warn("Unable to connect.", e);
+            setState(State.DISCONNECTED);
         }
     }
 
     public void disconnect() {
-        this.state = State.DISCONNECTING;
+        setState(State.DISCONNECTING);
         try {
-            if (this.session != null) {
-                this.session.close();
-            }
-            client.stop();
-            this.state = State.INITIAL;
+            Optional.ofNullable(this.session).ifPresent(s -> s.close());
         } catch (Exception e) {
-            connectionError(e);
+            logger.debug("Error connecting to device.", e);
         }
-    }
-
-    private void connectionError(Exception e) {
-        this.state = State.INITIAL;
-        logger.debug("Error connecting to device.", e);
-        // handler.updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.OFFLINE.COMMUNICATION_ERROR);
+        setState(State.DISCONNECTED);
     }
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
-        this.state = State.INITIAL;
+        setState(State.DISCONNECTED);
         logger.debug("WebSocket Closed - Code: {}, Reason: {}", statusCode, reason);
         this.session = null;
     }
@@ -102,10 +107,7 @@ public class WebOSTVMouseSocket {
     public void onConnect(Session session) {
         logger.debug("WebSocket Connected to: {}", session.getRemoteAddress().getAddress());
         this.session = session;
-        this.state = State.CONNECTED;
-        if (this.onConnected != null) {
-            this.onConnected.run();
-        }
+        setState(State.CONNECTED);
     }
 
     @OnWebSocketMessage
@@ -115,21 +117,22 @@ public class WebOSTVMouseSocket {
 
     @OnWebSocketError
     public void onError(Throwable cause) {
-        // voHandler.updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-        logger.debug("Connection failed: {}", cause.getMessage());
+        Optional.ofNullable(this.listener).ifPresent(l -> l.onError(cause.getMessage()));
+        logger.debug("Connection Error.", cause);
     }
 
     private void sendMessage(String msg) {
+        Session s = this.session;
         try {
-            if (this.session != null) {
+            if (s != null) {
                 logger.debug("Message [out]: {}", msg);
-                this.session.getRemote().sendString(msg);
+                s.getRemote().sendString(msg);
             } else {
                 logger.warn("No Connection to TV, skipping [out]: ", msg);
             }
 
         } catch (IOException e) {
-            connectionError(e);
+            logger.error("Unable to send message.", e);
         }
     }
 

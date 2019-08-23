@@ -13,15 +13,11 @@
 package org.openhab.binding.lgwebos.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.service.capability.PowerControl;
 
 /**
  * Handles Power Control Command.
@@ -33,31 +29,21 @@ import com.connectsdk.service.capability.PowerControl;
 public class PowerControlPower extends BaseChannelHandler<Void, Object> {
     private final Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
 
-    private PowerControl getControl(ConnectableDevice device) {
-        return device.getCapability(PowerControl.class);
-    }
-
     @Override
-    public void onReceiveCommand(@Nullable ConnectableDevice device, String channelId, LGWebOSHandler handler,
-            Command command) {
-        if (device == null) {
-            /*
-             * Unable to send anything to a null device. Unless the user configured autoupdate="false" neither
-             * onDeviceReady nor onDeviceRemoved will be called and item state would be permanently inconsistent.
-             * Therefore setting state to OFF
-             */
-            handler.postUpdate(channelId, OnOffType.OFF);
-            return;
-        }
-
-        if (OnOffType.ON == command) {
-            if (hasCapability(device, PowerControl.On)) {
-                getControl(device).powerOn(getDefaultResponseListener());
+    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+        if (!handler.getSocket().isConnected()) {
+            if (OnOffType.ON == command) {
+                // TODO: implement wake on lan here
+            } else {
+                /*
+                 * Unable to send anything to a not connected device.
+                 * onDeviceReady nor onDeviceRemoved will be called and item state would be permanently inconsistent.
+                 * Therefore setting state to OFF
+                 */
+                handler.postUpdate(channelId, OnOffType.OFF);
             }
         } else if (OnOffType.OFF == command) {
-            if (hasCapability(device, PowerControl.Off)) {
-                getControl(device).powerOff(getDefaultResponseListener());
-            }
+            handler.getSocket().powerOff(getDefaultResponseListener());
         } else {
             logger.warn("Only accept OnOffType. Type was {}.", command.getClass());
         }
@@ -65,12 +51,12 @@ public class PowerControlPower extends BaseChannelHandler<Void, Object> {
     }
 
     @Override
-    public void onDeviceReady(ConnectableDevice device, String channelId, LGWebOSHandler handler) {
+    public void onDeviceReady(String channelId, LGWebOSHandler handler) {
         handler.postUpdate(channelId, OnOffType.ON);
     }
 
     @Override
-    public void onDeviceRemoved(ConnectableDevice device, String channelId, LGWebOSHandler handler) {
+    public void onDeviceRemoved(String channelId, LGWebOSHandler handler) {
         handler.postUpdate(channelId, OnOffType.OFF);
     }
 }
