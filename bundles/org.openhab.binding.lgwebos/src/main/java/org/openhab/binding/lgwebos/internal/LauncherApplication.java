@@ -23,16 +23,13 @@ import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.UnDefType;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.core.AppInfo;
+import org.openhab.binding.lgwebos.internal.handler.core.LaunchSession;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.core.AppInfo;
-import com.connectsdk.service.capability.Launcher;
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.sessions.LaunchSession;
 
 /**
  * Provides ability to launch an application on the TV.
@@ -45,14 +42,14 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
     private final Map<ThingUID, @Nullable List<AppInfo>> applicationListCache = new HashMap<>();
 
     @Override
-    public void onDeviceReady(String channelId, LGWebOSHandler handler) {
+    public void onDeviceReady(String channelId, WebOSHandler handler) {
         super.onDeviceReady(channelId, handler);
 
-        handler.getSocket().getAppList(new Launcher.AppListListener() {
+        handler.getSocket().getAppList(new ResponseListener<List<AppInfo>>() {
 
             @Override
-            public void onError(@Nullable ServiceCommandError error) {
-                logger.warn("Error requesting application list: {}.", error == null ? "" : error.getMessage());
+            public void onError(@Nullable String error) {
+                logger.warn("Error requesting application list: {}.", error);
             }
 
             @Override
@@ -70,13 +67,13 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
     }
 
     @Override
-    public void onDeviceRemoved(String channelId, LGWebOSHandler handler) {
+    public void onDeviceRemoved(String channelId, WebOSHandler handler) {
         super.onDeviceRemoved(channelId, handler);
         applicationListCache.remove(handler.getThing().getUID());
     }
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
 
         final String value = command.toString();
 
@@ -87,7 +84,7 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
         } else {
             Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(value)).findFirst();
             if (appInfo.isPresent()) {
-                handler.getSocket().launchApp(appInfo.get().getId(), getDefaultResponseListener());
+                handler.getSocket().launchAppWithInfo(appInfo.get(), getDefaultResponseListener());
             } else {
                 logger.warn("TV does not support any app with id: {}.", value);
             }
@@ -97,13 +94,13 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
 
     @Override
     protected Optional<ServiceSubscription<ResponseListener<AppInfo>>> getSubscription(String channelId,
-            LGWebOSHandler handler) {
+            WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeRunningApp(new ResponseListener<AppInfo>() {
 
             @Override
-            public void onError(@Nullable ServiceCommandError error) {
-                logger.debug("Error in listening to application changes: {}.", error == null ? "" : error.getMessage());
+            public void onError(@Nullable String error) {
+                logger.debug("Error in listening to application changes: {}.", error);
             }
 
             @Override

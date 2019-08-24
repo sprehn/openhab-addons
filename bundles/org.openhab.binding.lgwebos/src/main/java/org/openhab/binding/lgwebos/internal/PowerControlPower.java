@@ -15,7 +15,7 @@ package org.openhab.binding.lgwebos.internal;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ public class PowerControlPower extends BaseChannelHandler<Void, Object> {
     private final Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         if (!handler.getSocket().isConnected()) {
             if (OnOffType.ON == command) {
                 // TODO: implement wake on lan here
@@ -51,12 +51,12 @@ public class PowerControlPower extends BaseChannelHandler<Void, Object> {
     }
 
     @Override
-    public void onDeviceReady(String channelId, LGWebOSHandler handler) {
+    public void onDeviceReady(String channelId, WebOSHandler handler) {
         handler.postUpdate(channelId, OnOffType.ON);
     }
 
     @Override
-    public void onDeviceRemoved(String channelId, LGWebOSHandler handler) {
+    public void onDeviceRemoved(String channelId, WebOSHandler handler) {
         handler.postUpdate(channelId, OnOffType.OFF);
     }
 }

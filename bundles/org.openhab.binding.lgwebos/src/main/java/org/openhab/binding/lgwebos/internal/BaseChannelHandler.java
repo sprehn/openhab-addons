@@ -19,13 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.thing.ThingUID;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.command.ServiceSubscription;
 
 /**
  * An abstract implementation of ChannelHander which serves as a base class for all concrete instances.
@@ -39,12 +37,12 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
     private final ResponseListener<R> defaultResponseListener = new ResponseListener<R>() {
 
         @Override
-        public void onError(@Nullable ServiceCommandError error) {
-            logger.warn("{}: received error response: ", getClass().getName(), error);
+        public void onError(@Nullable String error) {
+            logger.warn("{}: received error response: {}", getClass().getName(), error);
         }
 
         @Override
-        public void onSuccess(R object) {
+        public void onSuccess(@Nullable R object) {
             logger.debug("{}: {}.", getClass().getName(), object);
         }
     };
@@ -53,17 +51,17 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
     private Map<ThingUID, ServiceSubscription<T>> subscriptions = new ConcurrentHashMap<>();
 
     @Override
-    public void onDeviceReady(String channelId, LGWebOSHandler handler) {
+    public void onDeviceReady(String channelId, WebOSHandler handler) {
         // NOP
     }
 
     @Override
-    public void onDeviceRemoved(String channelId, LGWebOSHandler handler) {
+    public void onDeviceRemoved(String channelId, WebOSHandler handler) {
         // NOP
     }
 
     @Override
-    public final synchronized void refreshSubscription(String channelId, LGWebOSHandler handler) {
+    public final synchronized void refreshSubscription(String channelId, WebOSHandler handler) {
         removeAnySubscription(handler);
         if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured for this channel
             Optional<ServiceSubscription<T>> listener = getSubscription(channelId, handler);
@@ -84,12 +82,12 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
      * @return an {@code Optional} containing the ServiceSubscription, or an empty {@code Optional} if subscription is
      *         not supported.
      */
-    protected Optional<ServiceSubscription<T>> getSubscription(String channelId, LGWebOSHandler handler) {
+    protected Optional<ServiceSubscription<T>> getSubscription(String channelId, WebOSHandler handler) {
         return Optional.empty();
     }
 
     @Override
-    public final synchronized void removeAnySubscription(LGWebOSHandler handler) {
+    public final synchronized void removeAnySubscription(WebOSHandler handler) {
         ServiceSubscription<T> l = subscriptions.remove(handler.getThing().getUID());
         if (l != null) {
             handler.getSocket().unsubscribe(l);

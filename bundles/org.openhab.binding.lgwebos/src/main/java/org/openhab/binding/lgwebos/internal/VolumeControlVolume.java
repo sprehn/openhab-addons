@@ -22,13 +22,11 @@ import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.command.ServiceSubscription;
 
 /**
  * Handles TV Control Volume Commands. Allows to set a volume to an absolute number or increment and decrement the
@@ -41,7 +39,7 @@ public class VolumeControlVolume extends BaseChannelHandler<ResponseListener<Flo
     private final Logger logger = LoggerFactory.getLogger(VolumeControlVolume.class);
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         PercentType percent = null;
         if (command instanceof PercentType) {
             percent = (PercentType) command;
@@ -66,13 +64,13 @@ public class VolumeControlVolume extends BaseChannelHandler<ResponseListener<Flo
 
     @Override
     protected Optional<ServiceSubscription<ResponseListener<Float>>> getSubscription(String channelUID,
-            LGWebOSHandler handler) {
+            WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeVolume(new ResponseListener<Float>() {
 
             @Override
-            public void onError(@Nullable ServiceCommandError error) {
-                logger.debug("Error in listening to volume changes: {}.", error == null ? "" : error.getMessage());
+            public void onError(@Nullable String error) {
+                logger.debug("Error in listening to volume changes: {}.", error);
             }
 
             @Override

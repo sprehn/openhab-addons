@@ -14,7 +14,7 @@ package org.openhab.binding.lgwebos.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
 
 /**
  * Channel Handler mediates between connect sdk device state changes and openhab channel events.
@@ -32,7 +32,7 @@ public interface ChannelHandler {
      * @param handler must not be <code>null</code>
      * @param command must not be <code>null</code>
      */
-    void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command);
+    void onReceiveCommand(String channelId, WebOSHandler handler, Command command);
 
     /**
      * Handle underlying subscription status if device changes online state, capabilities or channel gets linked or
@@ -45,14 +45,14 @@ public interface ChannelHandler {
      * @param channelId must not be <code>null</code>
      * @param handler must not be <code>null</code>
      */
-    void refreshSubscription(String channelId, LGWebOSHandler handler);
+    void refreshSubscription(String channelId, WebOSHandler handler);
 
     /**
      * Removes subscriptions if there are any.
      *
      * @param handler must not be <code>null</code>
      */
-    void removeAnySubscription(LGWebOSHandler handler);
+    void removeAnySubscription(WebOSHandler handler);
 
     /**
      * Callback method whenever a device disappears.
@@ -60,7 +60,7 @@ public interface ChannelHandler {
      * @param channelId must not be <code>null</code>
      * @param handler must not be <code>null</code>
      */
-    void onDeviceRemoved(String channelId, LGWebOSHandler handler);
+    void onDeviceRemoved(String channelId, WebOSHandler handler);
 
     /**
      * Callback method whenever a device is discovered and ready to operate.
@@ -68,6 +68,6 @@ public interface ChannelHandler {
      * @param channelId must not be <code>null</code>
      * @param handler must not be <code>null</code>
      */
-    void onDeviceReady(String channelId, LGWebOSHandler handler);
+    void onDeviceReady(String channelId, WebOSHandler handler);
 
 }

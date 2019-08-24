@@ -18,13 +18,11 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.command.ServiceSubscription;
 
 /**
  * Handles TV Control Mute Command.
@@ -36,7 +34,7 @@ public class VolumeControlMute extends BaseChannelHandler<ResponseListener<Boole
     private final Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         if (OnOffType.ON == command || OnOffType.OFF == command) {
             handler.getSocket().setMute(OnOffType.ON == command, getDefaultResponseListener());
         } else {
@@ -46,13 +44,13 @@ public class VolumeControlMute extends BaseChannelHandler<ResponseListener<Boole
 
     @Override
     protected Optional<ServiceSubscription<ResponseListener<Boolean>>> getSubscription(String channelId,
-            LGWebOSHandler handler) {
+            WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeMute(new ResponseListener<Boolean>() {
 
             @Override
-            public void onError(@Nullable ServiceCommandError error) {
-                logger.debug("Error in listening to mute changes: {}.", error == null ? "" : error.getMessage());
+            public void onError(@Nullable String error) {
+                logger.debug("Error in listening to mute changes: {}.", error);
             }
 
             @Override

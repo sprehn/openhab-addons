@@ -1,3 +1,15 @@
+/**
+ * Copyright (c) 2010-2019 Contributors to the openHAB project
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 /*
  * WebOSTVKeyboardInput
  * Connect SDK
@@ -23,13 +35,19 @@ package org.openhab.binding.lgwebos.internal.handler;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.connectsdk.core.TextInputStatusInfo;
-import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommand;
-import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.command.URLServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceCommand;
+import org.openhab.binding.lgwebos.internal.handler.command.URLServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
+import org.openhab.binding.lgwebos.internal.handler.core.TextInputStatusInfo;
+
 import com.google.gson.JsonObject;
 
+/**
+ * {@link WebOSTVKeyboardInput} handles WebOSTV keyboard api.
+ *
+ * @author Hyun Kook Khang - Connect SDK initial contribution
+ * @author Sebastian Prehn - Adoption for openHAB
+ */
 public class WebOSTVKeyboardInput {
 
     private WebOSTVSocket service;
@@ -119,7 +137,7 @@ public class WebOSTVKeyboardInput {
             }
 
             @Override
-            public void onError(ServiceCommandError error) {
+            public void onError(String error) {
                 waiting = false;
                 if (toSend.size() > 0) {
                     sendData();
@@ -127,8 +145,8 @@ public class WebOSTVKeyboardInput {
             }
         };
 
-        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(uri, payload, true,
-                x -> x, responseListener);
+        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(uri, payload, x -> x,
+                responseListener);
         service.sendCommand(request);
     }
 

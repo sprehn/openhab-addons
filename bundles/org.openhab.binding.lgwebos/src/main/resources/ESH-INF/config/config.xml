@@ -6,14 +6,15 @@
 		https://openhab.org/schemas/config-description-1.0.0.xsd">
 
 	<config-description uri="thing-type:lgwebos:WebOSTV">
-		<parameter name="deviceId" type="text" required="true">
-			<label>Device ID</label>
-		</parameter>
-		<parameter name="deviceHost" type="text" required="false">
+		<parameter name="ipAddress" type="text" required="true">
 			<label>Host</label>
 			<description>Host or IP address of TV.</description>
 			<context>network-address</context>
 		</parameter>
+		<parameter name="key" type="text" required="false">
+            <label>Access Key</label>
+            <description>Key exchanged with TV after pairing.</description>
+        </parameter>
 	</config-description>
 
 </config-description:config-descriptions>

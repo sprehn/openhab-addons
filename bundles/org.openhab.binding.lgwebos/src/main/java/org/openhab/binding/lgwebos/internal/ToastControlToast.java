@@ -14,7 +14,7 @@ package org.openhab.binding.lgwebos.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
 
 /**
  * Handles Toast Control Command. This allows to send messages to the TV screen.
@@ -25,7 +25,7 @@ import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
 public class ToastControlToast extends BaseChannelHandler<Void, Object> {
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         handler.getSocket().showToast(command.toString(), getDefaultResponseListener());
     }
 }

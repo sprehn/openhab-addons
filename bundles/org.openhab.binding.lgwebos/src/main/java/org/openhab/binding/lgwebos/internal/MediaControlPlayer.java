@@ -16,11 +16,10 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.smarthome.core.library.types.PlayPauseType;
 import org.eclipse.smarthome.core.library.types.RewindFastforwardType;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.connectsdk.service.capability.MediaControl.PlayStateListener;
 
 /**
  * Handles commands of a Player Item.
@@ -29,11 +28,11 @@ import com.connectsdk.service.capability.MediaControl.PlayStateListener;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class MediaControlPlayer extends BaseChannelHandler<PlayStateListener, Object> {
+public class MediaControlPlayer extends BaseChannelHandler<ResponseListener<Object>, Object> {
     private final Logger logger = LoggerFactory.getLogger(MediaControlPlayer.class);
 
     @Override
-    public void onReceiveCommand(String channelId, LGWebOSHandler handler, Command command) {
+    public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         /*
          * if (NextPreviousType.NEXT == command) {
          * handler.getSocket().next(getDefaultResponseListener());

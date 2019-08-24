@@ -1,3 +1,15 @@
+/**
+ * Copyright (c) 2010-2019 Contributors to the openHAB project
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 package org.openhab.binding.lgwebos.internal.handler;
 
 import java.io.IOException;
@@ -16,6 +28,12 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * WebSocket implementation to connect to WebOSTV mouse api.
+ *
+ * @author Sebastian Prehn - Initial contribution
+ *
+ */
 @WebSocket()
 @NonNullByDefault
 public class WebOSTVMouseSocket {
@@ -71,7 +89,7 @@ public class WebOSTVMouseSocket {
     public void connect(URI destUri) {
         synchronized (this) {
             if (state != State.DISCONNECTED) {
-                logger.debug("Already connecting; not trying to connect again: " + state);
+                logger.debug("Already connecting; not trying to connect again: {}", state);
                 return;
             }
             setState(State.CONNECTING);
@@ -128,7 +146,7 @@ public class WebOSTVMouseSocket {
                 logger.debug("Message [out]: {}", msg);
                 s.getRemote().sendString(msg);
             } else {
-                logger.warn("No Connection to TV, skipping [out]: ", msg);
+                logger.warn("No Connection to TV, skipping [out]: {}", msg);
             }
 
         } catch (IOException e) {
