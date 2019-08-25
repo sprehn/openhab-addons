@@ -12,9 +12,8 @@
  */
 
 /*
- * This file is based on:
+ * This file is based on URLServiceSubscription:
  *
- * ServiceSubscription
  * Connect SDK
  *
  * Copyright (c) 2014 LG Electronics.
@@ -35,20 +34,25 @@
 
 package org.openhab.binding.lgwebos.internal.handler.command;
 
-import java.util.List;
+import java.util.function.Function;
+
+import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
+
+import com.google.gson.JsonObject;
 
 /**
- * Interface to subscribe with a listener to a service.
+ * Internal implementation of ServiceSubscription for URL-based commands.
+ *
  *
  * @author Hyun Kook Khang - Connect SDK initial contribution
  * @author Sebastian Prehn - Adoption for openHAB
- * @param <T>
  */
-public interface ServiceSubscription<T> {
+public class ServiceSubscription<X> extends ServiceCommand<X> {
 
-    public T addListener(T listener);
+    public ServiceSubscription(String uri, JsonObject payload, Function<JsonObject, X> converter,
+            ResponseListener<X> listener) {
+        super(uri, payload, converter, listener);
+        type = TYPE_SUB;
+    }
 
-    public void removeListener(T listener);
-
-    public List<T> getListeners();
 }

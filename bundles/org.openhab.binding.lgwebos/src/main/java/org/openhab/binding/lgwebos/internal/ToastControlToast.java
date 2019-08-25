@@ -22,7 +22,7 @@ import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class ToastControlToast extends BaseChannelHandler<Void, Object> {
+public class ToastControlToast extends BaseChannelHandler<Object> {
 
     @Override
     public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {

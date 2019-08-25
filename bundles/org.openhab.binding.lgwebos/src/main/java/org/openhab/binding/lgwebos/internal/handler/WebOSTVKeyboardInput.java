@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.openhab.binding.lgwebos.internal.handler.command.ServiceCommand;
-import org.openhab.binding.lgwebos.internal.handler.command.URLServiceSubscription;
+import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
 import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.openhab.binding.lgwebos.internal.handler.core.TextInputStatusInfo;
 
@@ -64,18 +64,15 @@ public class WebOSTVKeyboardInput {
         toSend = new ArrayList<String>();
     }
 
-    public void addToQueue(String input) {
+    public void sendText(String input) {
         toSend.add(input);
-        if (!waiting) {
+        if (!waiting) { // TODO: use a latch,and send in any case
             sendData();
         }
     }
 
     public void sendEnter() {
-        toSend.add(ENTER);
-        if (!waiting) {
-            sendData();
-        }
+        sendText(ENTER);
     }
 
     public void sendDel() {
@@ -145,16 +142,14 @@ public class WebOSTVKeyboardInput {
             }
         };
 
-        ServiceCommand<JsonObject, ResponseListener<JsonObject>> request = new ServiceCommand<>(uri, payload, x -> x,
-                responseListener);
+        ServiceCommand<JsonObject> request = new ServiceCommand<>(uri, payload, x -> x, responseListener);
         service.sendCommand(request);
     }
 
-    public URLServiceSubscription<TextInputStatusInfo, ResponseListener<TextInputStatusInfo>> connect(
-            final ResponseListener<TextInputStatusInfo> listener) {
+    public ServiceSubscription<TextInputStatusInfo> connect(final ResponseListener<TextInputStatusInfo> listener) {
 
-        URLServiceSubscription<TextInputStatusInfo, ResponseListener<TextInputStatusInfo>> subscription = new URLServiceSubscription<>(
-                KEYBOARD_INPUT, null, true, rawData -> parseRawKeyboardData(rawData), listener);
+        ServiceSubscription<TextInputStatusInfo> subscription = new ServiceSubscription<>(KEYBOARD_INPUT, null,
+                rawData -> parseRawKeyboardData(rawData), listener);
         service.sendCommand(subscription);
 
         return subscription;

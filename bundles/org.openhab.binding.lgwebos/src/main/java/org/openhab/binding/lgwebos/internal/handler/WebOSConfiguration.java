@@ -20,6 +20,8 @@ package org.openhab.binding.lgwebos.internal.handler;
  */
 public class WebOSConfiguration {
     String ipAddress; // name has to match LGWebOSBindingConstants.CONFIG_IPADDRESS
+    int port = 3001;
     String key; // name has to match LGWebOSBindingConstants.CONFIG_KEY
     // String uuid;
+    // String mac; // mac address of TV, if set we can attempt wake on lan
 }

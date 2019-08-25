@@ -64,7 +64,7 @@ public class WebOSUpnpDiscoverySearch extends AbstractDiscoveryService {
     }
 
     private void search() {
-        logger.debug("Sending Upnp Search Request for {}", WebOSBindingConstants.UPNP_SERVICE_TYPE);
+        logger.trace("Sending Upnp Search Request for {}", WebOSBindingConstants.UPNP_SERVICE_TYPE);
         upnpService.getControlPoint().search(new ServiceTypeHeader(WebOSBindingConstants.UPNP_SERVICE_TYPE));
     }
 

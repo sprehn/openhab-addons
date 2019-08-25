@@ -34,12 +34,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Provides ability to launch an application on the TV.
  *
- * @author Sebastian Prehn - initial contribution
+ * @author Sebastian Prehn - Initial contribution
  */
 @NonNullByDefault
-public class LauncherApplication extends BaseChannelHandler<ResponseListener<AppInfo>, LaunchSession> {
+public class LauncherApplication extends BaseChannelHandler<AppInfo> {
     private final Logger logger = LoggerFactory.getLogger(LauncherApplication.class);
     private final Map<ThingUID, @Nullable List<AppInfo>> applicationListCache = new HashMap<>();
+    private final ResponseListener<LaunchSession> launchSessionResponseListener = createResponseListener();
 
     @Override
     public void onDeviceReady(String channelId, WebOSHandler handler) {
@@ -48,7 +49,7 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
         handler.getSocket().getAppList(new ResponseListener<List<AppInfo>>() {
 
             @Override
-            public void onError(@Nullable String error) {
+            public void onError(String error) {
                 logger.warn("Error requesting application list: {}.", error);
             }
 
@@ -84,7 +85,7 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
         } else {
             Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(value)).findFirst();
             if (appInfo.isPresent()) {
-                handler.getSocket().launchAppWithInfo(appInfo.get(), getDefaultResponseListener());
+                handler.getSocket().launchAppWithInfo(appInfo.get(), launchSessionResponseListener);
             } else {
                 logger.warn("TV does not support any app with id: {}.", value);
             }
@@ -93,8 +94,7 @@ public class LauncherApplication extends BaseChannelHandler<ResponseListener<App
     }
 
     @Override
-    protected Optional<ServiceSubscription<ResponseListener<AppInfo>>> getSubscription(String channelId,
-            WebOSHandler handler) {
+    protected Optional<ServiceSubscription<AppInfo>> getSubscription(String channelId, WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeRunningApp(new ResponseListener<AppInfo>() {
 

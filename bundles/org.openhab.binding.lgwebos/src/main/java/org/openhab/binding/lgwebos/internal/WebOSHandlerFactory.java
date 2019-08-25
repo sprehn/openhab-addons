@@ -16,17 +16,16 @@ import static org.openhab.binding.lgwebos.internal.WebOSBindingConstants.*;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
-import org.eclipse.smarthome.io.net.http.WebSocketFactory;
 import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,14 +42,16 @@ public class WebOSHandlerFactory extends BaseThingHandlerFactory {
     @NonNullByDefault({})
     private WebSocketClient webSocketClient;
 
-    @Reference
-    protected void setWebSocketClient(WebSocketFactory webSocketFactory) {
-        this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
-    }
-
-    protected void unsetWebSocketClient(WebSocketFactory webSocketFactory) {
-        this.webSocketClient = null;
-    }
+    /*
+     * @Reference
+     * protected void setWebSocketClient(WebSocketFactory webSocketFactory) {
+     * this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
+     * }
+     *
+     * protected void unsetWebSocketClient(WebSocketFactory webSocketFactory) {
+     * this.webSocketClient = null;
+     * }
+     */
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -69,6 +70,30 @@ public class WebOSHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected void activate(ComponentContext componentContext) {
         super.activate(componentContext);
+
+        /*
+         * Cannot use openHAB's websocket client (webSocketFactory.getCommonWebSocketClient())
+         * LGWebOS TV only uses WEAK cipher suites, thus we have to modify the client, which is not allowed on the
+         * shared client.
+         * Therefore we also have to handle starting and stopping the client.
+         */
+
+        SslContextFactory sslContextFactory = new SslContextFactory(true);
+
+        sslContextFactory.addExcludeProtocols("tls/1.3");
+        // TODO: instead of enabling all weak ciphers, just enable the best weak cipher that works, or we use plain
+        // httpa
+        sslContextFactory.setExcludeCipherSuites(); // websocket.org and LGWebOS TV only uses WEAK cipher suites
+
+        this.webSocketClient = new WebSocketClient(sslContextFactory);
+        this.webSocketClient.setConnectTimeout(1000); // reduce timeout from 15 to 1 second. it has to be less than
+                                                      // WebOsHandler.RECONNECT_INTERVAL_SECONDS
+        this.webSocketClient.getPolicy().setMaxTextMessageSize(2097152); // channel list and app list are really big
+                                                                         // json docs up to 2MB
+
+        // //TODO: does not work yet
+        // various responses from TV exceeds 64kb
+
         try {
             this.webSocketClient.start();
         } catch (Exception e) {

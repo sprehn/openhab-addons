@@ -35,7 +35,6 @@
 package org.openhab.binding.lgwebos.internal.handler.core;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
 
 /**
  * Generic asynchronous operation response success handler block. If there is any response data to be processed, it will
@@ -51,13 +50,11 @@ public interface ResponseListener<T> {
      * Returns the success of the call of type T.
      * Contains the output data as a generic object reference.
      * This value may be any of a number of types as defined by T in subclasses of ResponseListener.
-     * It is also possible that responseObject will be <code>null</code> for operations that don't require data to be
-     * returned (move mouse, send key code, etc).
      *
      * @param responseObject Response object, can be any number of object types, depending on the
-     *            protocol/capability/etc, even <code>null</code>
+     *            protocol/capability/etc
      */
-    void onSuccess(@Nullable T responseObject);
+    void onSuccess(T responseObject);
 
     /**
      * Method to return the error message that was generated.

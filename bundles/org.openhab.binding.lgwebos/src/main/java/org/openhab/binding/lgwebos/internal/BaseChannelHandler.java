@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
 import org.openhab.binding.lgwebos.internal.handler.command.ServiceSubscription;
@@ -31,24 +30,28 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-abstract class BaseChannelHandler<T, R> implements ChannelHandler {
+abstract class BaseChannelHandler<X> implements ChannelHandler {
     private final Logger logger = LoggerFactory.getLogger(BaseChannelHandler.class);
 
-    private final ResponseListener<R> defaultResponseListener = new ResponseListener<R>() {
+    private final ResponseListener<X> defaultResponseListener = createResponseListener();
 
-        @Override
-        public void onError(@Nullable String error) {
-            logger.warn("{}: received error response: {}", getClass().getName(), error);
-        }
+    protected <Y> ResponseListener<Y> createResponseListener() {
+        return new ResponseListener<Y>() {
 
-        @Override
-        public void onSuccess(@Nullable R object) {
-            logger.debug("{}: {}.", getClass().getName(), object);
-        }
-    };
+            @Override
+            public void onError(String error) {
+                logger.warn("{}: received error response: {}", getClass().getName(), error);
+            }
+
+            @Override
+            public void onSuccess(Y object) {
+                logger.debug("{}: {}.", getClass().getName(), object);
+            }
+        };
+    }
 
     // IP to Subscriptions map
-    private Map<ThingUID, ServiceSubscription<T>> subscriptions = new ConcurrentHashMap<>();
+    private Map<ThingUID, ServiceSubscription<X>> subscriptions = new ConcurrentHashMap<>();
 
     @Override
     public void onDeviceReady(String channelId, WebOSHandler handler) {
@@ -64,7 +67,7 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
     public final synchronized void refreshSubscription(String channelId, WebOSHandler handler) {
         removeAnySubscription(handler);
         if (handler.isChannelInUse(channelId)) { // only listen if least one item is configured for this channel
-            Optional<ServiceSubscription<T>> listener = getSubscription(channelId, handler);
+            Optional<ServiceSubscription<X>> listener = getSubscription(channelId, handler);
 
             if (listener.isPresent()) {
                 logger.debug("Subscribed {} on IP: {}", this.getClass().getName(), handler.getThing().getUID());
@@ -82,20 +85,20 @@ abstract class BaseChannelHandler<T, R> implements ChannelHandler {
      * @return an {@code Optional} containing the ServiceSubscription, or an empty {@code Optional} if subscription is
      *         not supported.
      */
-    protected Optional<ServiceSubscription<T>> getSubscription(String channelId, WebOSHandler handler) {
+    protected Optional<ServiceSubscription<X>> getSubscription(String channelId, WebOSHandler handler) {
         return Optional.empty();
     }
 
     @Override
     public final synchronized void removeAnySubscription(WebOSHandler handler) {
-        ServiceSubscription<T> l = subscriptions.remove(handler.getThing().getUID());
+        ServiceSubscription<X> l = subscriptions.remove(handler.getThing().getUID());
         if (l != null) {
             handler.getSocket().unsubscribe(l);
             logger.debug("Unsubscribed {} on IP: {}", this.getClass().getName(), handler.getThing().getUID());
         }
     }
 
-    protected ResponseListener<R> getDefaultResponseListener() {
+    protected ResponseListener<X> getDefaultResponseListener() {
         return defaultResponseListener;
     }
 

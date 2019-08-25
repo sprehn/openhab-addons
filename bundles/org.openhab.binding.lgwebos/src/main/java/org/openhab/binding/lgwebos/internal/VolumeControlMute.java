@@ -30,21 +30,22 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class VolumeControlMute extends BaseChannelHandler<ResponseListener<Boolean>, Object> {
+public class VolumeControlMute extends BaseChannelHandler<Boolean> {
     private final Logger logger = LoggerFactory.getLogger(VolumeControlMute.class);
+
+    private final ResponseListener<Object> objResponseListener = createResponseListener();
 
     @Override
     public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         if (OnOffType.ON == command || OnOffType.OFF == command) {
-            handler.getSocket().setMute(OnOffType.ON == command, getDefaultResponseListener());
+            handler.getSocket().setMute(OnOffType.ON == command, objResponseListener);
         } else {
             logger.warn("Only accept OnOffType. Type was {}.", command.getClass());
         }
     }
 
     @Override
-    protected Optional<ServiceSubscription<ResponseListener<Boolean>>> getSubscription(String channelId,
-            WebOSHandler handler) {
+    protected Optional<ServiceSubscription<Boolean>> getSubscription(String channelId, WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeMute(new ResponseListener<Boolean>() {
 

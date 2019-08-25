@@ -179,8 +179,7 @@ public class WebOSActions implements ThingActions {
     public void sendText(
             @ActionInput(name = "text", label = "@text/actionSendTextInputTextLabel", description = "@text/actionSendTextInputTextDesc") String text) {
         getSocket().ifPresent(control -> {
-            ServiceSubscription<ResponseListener<TextInputStatusInfo>> subscription = control
-                    .subscribeTextInputStatus(textInputListener);
+            ServiceSubscription<TextInputStatusInfo> subscription = control.subscribeTextInputStatus(textInputListener);
             control.sendText(text);
             control.unsubscribe(subscription);
         });

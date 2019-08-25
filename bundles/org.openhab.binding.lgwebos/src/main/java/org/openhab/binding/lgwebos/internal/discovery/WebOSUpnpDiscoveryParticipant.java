@@ -60,8 +60,7 @@ public class WebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
 
         return DiscoveryResultBuilder.create(thingUID).withLabel(device.getDetails().getFriendlyName())
                 .withProperty(DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
-                .withProperty(WebOSBindingConstants.CONFIG_IPADDRESS,
-                        device.getIdentity().getDescriptorURL().getHost())
+                .withProperty(WebOSBindingConstants.CONFIG_IPADDRESS, device.getIdentity().getDescriptorURL().getHost())
                 .withLabel(device.getDetails().getFriendlyName())
                 .withProperty("modelName", device.getDetails().getModelDetails().getModelName())
                 .withProperty("modelNumber", device.getDetails().getModelDetails().getModelNumber())
@@ -74,7 +73,7 @@ public class WebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
 
     @Override
     public @Nullable ThingUID getThingUID(RemoteDevice device) {
-        logger.debug("Discovered remote device {}", device);
+        logger.trace("Discovered remote device {}", device);
         if (device.findService(WebOSBindingConstants.UPNP_SERVICE_TYPE) != null) {
             logger.debug("Found LG WebOS TV: {}", device);
             return new ThingUID(THING_TYPE_WEBOSTV, device.getIdentity().getUdn().getIdentifierString());

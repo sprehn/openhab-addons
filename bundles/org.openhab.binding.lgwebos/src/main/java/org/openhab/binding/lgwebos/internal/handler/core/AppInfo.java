@@ -43,7 +43,7 @@ import com.google.gson.annotations.SerializedName;
  * further interpreted by the TV.
  *
  * @author Hyun Kook Khang - Connect SDK initial contribution
- * @author Sebastian Prehn - Adoption for openHAB
+ * @author Sebastian Prehn - Adoption for openHAB, made immutable
  */
 public class AppInfo {
 
@@ -63,6 +63,11 @@ public class AppInfo {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public String toString() {
+        return "AppInfo [id=" + id + ", name=" + name + "]";
     }
 
     @Override

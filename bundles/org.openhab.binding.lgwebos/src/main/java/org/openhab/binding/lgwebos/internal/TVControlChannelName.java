@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class TVControlChannelName extends BaseChannelHandler<ResponseListener<ChannelInfo>, Object> {
+public class TVControlChannelName extends BaseChannelHandler<ChannelInfo> {
     private final Logger logger = LoggerFactory.getLogger(TVControlChannelName.class);
 
     @Override
@@ -41,8 +41,7 @@ public class TVControlChannelName extends BaseChannelHandler<ResponseListener<Ch
     }
 
     @Override
-    protected Optional<ServiceSubscription<ResponseListener<ChannelInfo>>> getSubscription(String channelId,
-            WebOSHandler handler) {
+    protected Optional<ServiceSubscription<ChannelInfo>> getSubscription(String channelId, WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeCurrentChannel(new ResponseListener<ChannelInfo>() {
             @Override

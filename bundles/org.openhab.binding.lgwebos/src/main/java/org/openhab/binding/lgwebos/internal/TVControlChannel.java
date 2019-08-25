@@ -37,9 +37,10 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class TVControlChannel extends BaseChannelHandler<ResponseListener<ChannelInfo>, Object> {
+public class TVControlChannel extends BaseChannelHandler<ChannelInfo> {
     private final Logger logger = LoggerFactory.getLogger(TVControlChannel.class);
     private final Map<ThingUID, @Nullable List<ChannelInfo>> channelListCache = new HashMap<>();
+    private final ResponseListener<Object> objResponseListener = createResponseListener();
 
     @Override
     public void onDeviceReady(@NonNull String channelId, @NonNull WebOSHandler handler) {
@@ -81,7 +82,7 @@ public class TVControlChannel extends BaseChannelHandler<ResponseListener<Channe
             Optional<ChannelInfo> channelInfo = channels.stream().filter(c -> c.getChannelNumber().equals(value))
                     .findFirst();
             if (channelInfo.isPresent()) {
-                handler.getSocket().setChannel(channelInfo.get(), getDefaultResponseListener());
+                handler.getSocket().setChannel(channelInfo.get(), objResponseListener);
             } else {
                 logger.warn("TV does not have a channel: {}.", value);
             }
@@ -90,8 +91,7 @@ public class TVControlChannel extends BaseChannelHandler<ResponseListener<Channe
     }
 
     @Override
-    protected Optional<ServiceSubscription<ResponseListener<ChannelInfo>>> getSubscription(String channelId,
-            WebOSHandler handler) {
+    protected Optional<ServiceSubscription<ChannelInfo>> getSubscription(String channelId, WebOSHandler handler) {
         return Optional.of(handler.getSocket().subscribeCurrentChannel(new ResponseListener<ChannelInfo>() {
 
             @Override

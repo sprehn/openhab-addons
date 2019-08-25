@@ -40,70 +40,46 @@ package org.openhab.binding.lgwebos.internal.handler.core;
  * further interpreted by the TV.
  *
  * @author Hyun Kook Khang - Connect SDK initial contribution
- * @author Sebastian Prehn - Adoption for openHAB
+ * @author Sebastian Prehn - Adoption for openHAB, removed minor major number, made immutable
  */
 public class ChannelInfo {
 
     private String channelName;
     private String channelId;
     private String channelNumber;
-    private int minorNumber;
-    private int majorNumber;
+    private String channelType;
 
-    public ChannelInfo() {
+    public ChannelInfo(String channelName, String channelId, String channelNumber, String channelType) {
+        super();
+        this.channelId = channelId;
+        this.channelNumber = channelNumber;
+        this.channelName = channelName;
+        this.channelType = channelType;
     }
 
     public String getName() {
         return channelName;
     }
 
-    public void setName(String channelName) {
-        this.channelName = channelName;
-    }
-
     public String getId() {
         return channelId;
-    }
-
-    public void setId(String channelId) {
-        this.channelId = channelId;
     }
 
     public String getChannelNumber() {
         return channelNumber;
     }
 
-    public void setChannelNumber(String channelNumber) {
-        this.channelNumber = channelNumber;
+    @Override
+    public String toString() {
+        return "ChannelInfo [channelId=" + channelId + ", channelNumber=" + channelNumber + ", channelName="
+                + channelName + ", channelType=" + channelType + "]";
     }
-
-    /*
-     * public JsonObject toJSONObject() {
-     * JsonObject obj = new JsonObject();
-     *
-     * obj.addProperty("name", channelName);
-     * obj.addProperty("id", channelId);
-     * obj.addProperty("number", channelNumber);
-     * obj.addProperty("majorNumber", majorNumber);
-     * obj.addProperty("minorNumber", minorNumber);
-     * obj.add("rawData", rawData);
-     *
-     * return obj;
-     * }
-     */
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        if (channelId != null) {
-            result = prime * result + channelId.hashCode();
-        } else {
-            result = prime * result + ((channelName == null) ? 0 : channelName.hashCode());
-            result = prime * result + ((channelNumber == null) ? 0 : channelNumber.hashCode());
-            result = prime * result + majorNumber;
-            result = prime * result + minorNumber;
-        }
+        result = prime * result + ((channelId == null) ? 0 : channelId.hashCode());
         return result;
     }
 
@@ -119,33 +95,14 @@ public class ChannelInfo {
             return false;
         }
         ChannelInfo other = (ChannelInfo) obj;
-
-        if (channelId != null) {
-            if (channelId.equals(other.channelId)) {
-                return true;
-            }
-        }
-
-        if (channelName == null) {
-            if (other.channelName != null) {
+        if (channelId == null) {
+            if (other.channelId != null) {
                 return false;
             }
-        } else if (!channelName.equals(other.channelName)) {
-            return false;
-        }
-        if (channelNumber == null) {
-            if (other.channelNumber != null) {
-                return false;
-            }
-        } else if (!channelNumber.equals(other.channelNumber)) {
-            return false;
-        }
-        if (majorNumber != other.majorNumber) {
-            return false;
-        }
-        if (minorNumber != other.minorNumber) {
+        } else if (!channelId.equals(other.channelId)) {
             return false;
         }
         return true;
     }
+
 }

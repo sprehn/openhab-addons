@@ -34,7 +34,6 @@ import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.State;
 import org.openhab.binding.lgwebos.action.WebOSActions;
 import org.openhab.binding.lgwebos.internal.ChannelHandler;
-import org.openhab.binding.lgwebos.internal.WebOSBindingConstants;
 import org.openhab.binding.lgwebos.internal.LauncherApplication;
 import org.openhab.binding.lgwebos.internal.MediaControlPlayer;
 import org.openhab.binding.lgwebos.internal.MediaControlStop;
@@ -44,6 +43,7 @@ import org.openhab.binding.lgwebos.internal.TVControlChannelName;
 import org.openhab.binding.lgwebos.internal.ToastControlToast;
 import org.openhab.binding.lgwebos.internal.VolumeControlMute;
 import org.openhab.binding.lgwebos.internal.VolumeControlVolume;
+import org.openhab.binding.lgwebos.internal.WebOSBindingConstants;
 import org.openhab.binding.lgwebos.internal.handler.WebOSTVSocket.WebOSTVSocketListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +82,7 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
     public WebOSHandler(@NonNull Thing thing, WebSocketClient webSocketClient) {
         super(thing);
         this.webSocketClient = webSocketClient;
+
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
         handlers.put(CHANNEL_POWER, new PowerControlPower());
@@ -104,7 +105,7 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
             return;
         }
 
-        socket = new WebOSTVSocket(webSocketClient, this, config.ipAddress);
+        socket = new WebOSTVSocket(webSocketClient, this, config.ipAddress, config.port);
         socket.setListener(this);
 
         startReconnectJob();
@@ -123,8 +124,10 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
     }
 
     private void startReconnectJob() {
-        reconnectJob = scheduler.scheduleWithFixedDelay(() -> socket.connect(), RECONNECT_START_UP_DELAY_SECONDS,
-                RECONNECT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        if (reconnectJob == null || reconnectJob.isCancelled()) {
+            reconnectJob = scheduler.scheduleWithFixedDelay(() -> socket.connect(), RECONNECT_START_UP_DELAY_SECONDS,
+                    RECONNECT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        }
     }
 
     private void stopReconnectJob() {
@@ -197,10 +200,8 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
                 startReconnectJob();
                 break;
             case CONNECTING:
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "Connecting ...");
                 break;
             case DISCONNECTING:
-                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Disconnecting ...");
                 break;
             case REGISTERED:
                 stopReconnectJob(); // maybe give the user an option, not to pair it? This way we will keep asking
@@ -211,7 +212,8 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
                 });
                 break;
             case REGISTERING:
-                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Registering");
+                updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE,
+                        "Registering - You may need to confirm pairing on TV.");
                 break;
         }
 

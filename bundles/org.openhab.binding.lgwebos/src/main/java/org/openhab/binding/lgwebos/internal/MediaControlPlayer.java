@@ -17,7 +17,6 @@ import org.eclipse.smarthome.core.library.types.PlayPauseType;
 import org.eclipse.smarthome.core.library.types.RewindFastforwardType;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.lgwebos.internal.handler.WebOSHandler;
-import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class MediaControlPlayer extends BaseChannelHandler<ResponseListener<Object>, Object> {
+public class MediaControlPlayer extends BaseChannelHandler<Object> {
     private final Logger logger = LoggerFactory.getLogger(MediaControlPlayer.class);
 
     @Override

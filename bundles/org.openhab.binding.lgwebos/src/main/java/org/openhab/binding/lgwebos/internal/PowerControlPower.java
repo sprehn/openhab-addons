@@ -26,13 +26,14 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class PowerControlPower extends BaseChannelHandler<Void, Object> {
+public class PowerControlPower extends BaseChannelHandler<Object> {
     private final Logger logger = LoggerFactory.getLogger(PowerControlPower.class);
 
     @Override
     public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
         if (!handler.getSocket().isConnected()) {
             if (OnOffType.ON == command) {
+                logger.debug("Received ON command - Turning TV on is not supported by LG WebOS TVs.");
                 // TODO: implement wake on lan here
             } else {
                 /*

@@ -21,6 +21,6 @@
 		  <version>9.4.11.v20180605</version>
 		  <scope>provided</scope>
 		</dependency>
-	</dependencies>
+    </dependencies>
 
 </project>

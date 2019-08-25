@@ -44,12 +44,11 @@ import com.google.gson.JsonObject;
 
 /**
  * Internal implementation of ServiceCommand for URL-based commands
- * T is a response listener for a functional type X.
  *
  * @author Hyun Kook Khang - Connect SDK initial contribution
  * @author Sebastian Prehn - Adoption for openHAB
  */
-public class ServiceCommand<X, T extends ResponseListener<X>> {
+public class ServiceCommand<X> {
     public static final String TYPE_REQ = "request";
     public static final String TYPE_SUB = "subscribe";
 
@@ -60,9 +59,10 @@ public class ServiceCommand<X, T extends ResponseListener<X>> {
 
     int requestId;
 
-    T responseListener;
+    ResponseListener<X> responseListener;
 
-    public ServiceCommand(String targetURL, JsonObject payload, Function<JsonObject, X> converter, T listener) {
+    public ServiceCommand(String targetURL, JsonObject payload, Function<JsonObject, X> converter,
+            ResponseListener<X> listener) {
         this.target = targetURL;
         this.payload = payload;
         this.converter = converter;
@@ -92,7 +92,7 @@ public class ServiceCommand<X, T extends ResponseListener<X>> {
         this.getResponseListener().onError(error);
     }
 
-    public T getResponseListener() {
+    public ResponseListener<X> getResponseListener() {
         return responseListener;
     }
 

@@ -35,8 +35,10 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class VolumeControlVolume extends BaseChannelHandler<ResponseListener<Float>, Object> {
+public class VolumeControlVolume extends BaseChannelHandler<Float> {
     private final Logger logger = LoggerFactory.getLogger(VolumeControlVolume.class);
+
+    private final ResponseListener<Object> objResponseListener = createResponseListener();
 
     @Override
     public void onReceiveCommand(String channelId, WebOSHandler handler, Command command) {
@@ -50,21 +52,20 @@ public class VolumeControlVolume extends BaseChannelHandler<ResponseListener<Flo
         }
 
         if (percent != null) {
-            handler.getSocket().setVolume(percent.floatValue() / 100.0f, getDefaultResponseListener());
+            handler.getSocket().setVolume(percent.floatValue() / 100.0f, objResponseListener);
         } else if (IncreaseDecreaseType.INCREASE == command) {
-            handler.getSocket().volumeUp(getDefaultResponseListener());
+            handler.getSocket().volumeUp(objResponseListener);
         } else if (IncreaseDecreaseType.DECREASE == command) {
-            handler.getSocket().volumeDown(getDefaultResponseListener());
+            handler.getSocket().volumeDown(objResponseListener);
         } else if (OnOffType.OFF == command || OnOffType.ON == command) {
-            handler.getSocket().setMute(OnOffType.OFF == command, getDefaultResponseListener());
+            handler.getSocket().setMute(OnOffType.OFF == command, objResponseListener);
         } else {
             logger.warn("Only accept PercentType, DecimalType, StringType command. Type was {}.", command.getClass());
         }
     }
 
     @Override
-    protected Optional<ServiceSubscription<ResponseListener<Float>>> getSubscription(String channelUID,
-            WebOSHandler handler) {
+    protected Optional<ServiceSubscription<Float>> getSubscription(String channelUID, WebOSHandler handler) {
 
         return Optional.of(handler.getSocket().subscribeVolume(new ResponseListener<Float>() {
 
