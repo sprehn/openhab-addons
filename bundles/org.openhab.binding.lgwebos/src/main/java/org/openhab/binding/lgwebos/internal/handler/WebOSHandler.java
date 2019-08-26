@@ -100,12 +100,12 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
     public void initialize() {
         config = getConfigAs(WebOSConfiguration.class);
 
-        if (config.ipAddress == null || config.ipAddress.isEmpty()) {
+        if (config.host == null || config.host.isEmpty()) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, MSG_MISSING_PARAM);
             return;
         }
 
-        socket = new WebOSTVSocket(webSocketClient, this, config.ipAddress, config.port);
+        socket = new WebOSTVSocket(webSocketClient, this, config.host, config.port);
         socket.setListener(this);
 
         startReconnectJob();

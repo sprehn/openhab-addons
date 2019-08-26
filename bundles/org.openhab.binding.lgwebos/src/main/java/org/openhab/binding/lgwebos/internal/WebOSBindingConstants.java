@@ -37,7 +37,7 @@ public class WebOSBindingConstants {
 
     public static final ServiceType UPNP_SERVICE_TYPE = new ServiceType("lge-com", "webos-second-screen", 1);
 
-    public static final String CONFIG_IPADDRESS = "ipAddress";
+    public static final String CONFIG_HOST = "host";
     public static final String CONFIG_KEY = "key";
 
     // List of all Channel ids. Values have to match ids in thing-types.xml

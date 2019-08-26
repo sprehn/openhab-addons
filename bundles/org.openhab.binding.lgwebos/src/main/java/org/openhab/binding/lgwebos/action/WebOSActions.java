@@ -140,15 +140,13 @@ public class WebOSActions implements ThingActions {
     @RuleAction(label = "@text/actionLaunchApplicationLabel", description = "@text/actionLaunchApplicationDesc")
     public void launchApplication(
             @ActionInput(name = "appId", label = "@text/actionLaunchApplicationInputAppIDLabel", description = "@text/actionLaunchApplicationInputAppIDDesc") String appId) {
-        List<AppInfo> appInfos = getAppInfos();
-        getSocket().ifPresent(control -> {
-            Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(appId)).findFirst();
-            if (appInfo.isPresent()) {
-                control.launchAppWithInfo(appInfo.get(), createResponseListener());
-            } else {
-                logger.warn("TV does not support any app with id: {}.", appId);
-            }
-        });
+        Optional<AppInfo> appInfo = getAppInfos().stream().filter(a -> a.getId().equals(appId)).findFirst();
+        if (appInfo.isPresent()) {
+            getSocket().ifPresent(control -> control.launchAppWithInfo(appInfo.get(), createResponseListener()));
+        } else {
+            logger.warn("TV does not support any app with id: {}.", appId);
+        }
+
     }
 
     @RuleAction(label = "@text/actionLaunchApplicationWithParamsLabel", description = "@text/actionLaunchApplicationWithParamsDesc")
@@ -160,15 +158,14 @@ public class WebOSActions implements ThingActions {
             JsonParser parser = new JsonParser();
             JsonObject payload = (JsonObject) parser.parse(params);
 
-            List<AppInfo> appInfos = getAppInfos();
-            getSocket().ifPresent(control -> {
-                Optional<AppInfo> appInfo = appInfos.stream().filter(a -> a.getId().equals(appId)).findFirst();
-                if (appInfo.isPresent()) {
-                    control.launchAppWithInfo(appInfo.get(), payload, createResponseListener());
-                } else {
-                    logger.warn("TV does not support any app with id: {}.", appId);
-                }
-            });
+            Optional<AppInfo> appInfo = getAppInfos().stream().filter(a -> a.getId().equals(appId)).findFirst();
+            if (appInfo.isPresent()) {
+                getSocket().ifPresent(
+                        control -> control.launchAppWithInfo(appInfo.get(), payload, createResponseListener()));
+            } else {
+                logger.warn("TV does not support any app with id: {}.", appId);
+            }
+
         } catch (JsonParseException ex) {
             logger.warn("Parameters value ({}) is not in a valid JSON format. {}", params, ex.getMessage());
             return;

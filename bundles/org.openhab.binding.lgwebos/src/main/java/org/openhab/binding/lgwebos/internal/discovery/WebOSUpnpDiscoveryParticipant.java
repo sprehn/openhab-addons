@@ -60,7 +60,7 @@ public class WebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
 
         return DiscoveryResultBuilder.create(thingUID).withLabel(device.getDetails().getFriendlyName())
                 .withProperty(DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
-                .withProperty(WebOSBindingConstants.CONFIG_IPADDRESS, device.getIdentity().getDescriptorURL().getHost())
+                .withProperty(WebOSBindingConstants.CONFIG_HOST, device.getIdentity().getDescriptorURL().getHost())
                 .withLabel(device.getDetails().getFriendlyName())
                 .withProperty("modelName", device.getDetails().getModelDetails().getModelName())
                 .withProperty("modelNumber", device.getDetails().getModelDetails().getModelNumber())

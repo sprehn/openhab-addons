@@ -19,7 +19,7 @@ package org.openhab.binding.lgwebos.internal.handler;
  * @author Sebastian Prehn - Initial contribution
  */
 public class WebOSConfiguration {
-    String ipAddress; // name has to match LGWebOSBindingConstants.CONFIG_IPADDRESS
+    String host; // name has to match LGWebOSBindingConstants.CONFIG_HOST
     int port = 3001;
     String key; // name has to match LGWebOSBindingConstants.CONFIG_KEY
     // String uuid;
