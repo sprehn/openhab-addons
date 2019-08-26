@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Sebastian Prehn - initial contribution
  */
-public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Config, WebOSTVSocketListener {
+public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.ConfigProvider, WebOSTVSocketListener {
 
     /*
      * constants for device polling
@@ -65,7 +65,7 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
     /*
      * error messages
      */
-    private static final String MSG_MISSING_PARAM = "Missing parameter \"ipAddress\"";
+    private static final String MSG_MISSING_PARAM = "Missing parameter \"host\"";
 
     private final Logger logger = LoggerFactory.getLogger(WebOSHandler.class);
 
@@ -99,7 +99,7 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
     @Override
     public void initialize() {
         config = getConfigAs(WebOSConfiguration.class);
-
+        logger.trace("Handler initialized with config {}", config);
         if (config.host == null || config.host.isEmpty()) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, MSG_MISSING_PARAM);
             return;
@@ -137,11 +137,6 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
         }
     }
 
-    @Override
-    public void handleConfigurationUpdate(Map<@NonNull String, @NonNull Object> configurationParameters) {
-        super.handleConfigurationUpdate(configurationParameters);
-    }
-
     public WebOSTVSocket getSocket() {
         return socket;
     }
@@ -171,19 +166,18 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
 
     @Override
     public void storeKey(String key) {
+        config.key = key; // store it current in memory config, avoiding reinitialization via handleConfigurationUpdate
         Configuration configuration = editConfiguration();
         configuration.put(WebOSBindingConstants.CONFIG_KEY, key);
         updateConfiguration(configuration);
     }
 
-    /*
-     * @Override
-     * public void storeDeviceUUID(String uuid) {
-     * Configuration configuration = editConfiguration();
-     * configuration.put("uuid", uuid);
-     * updateConfiguration(configuration);
-     * }
-     */
+    @Override
+    public void storeProperties(Map<String, String> properties) {
+        Map<@NonNull String, @NonNull String> map = editProperties();
+        map.putAll(properties);
+        updateProperties(map);
+    }
 
     // Connectable Device Listener
 
@@ -204,7 +198,6 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
             case DISCONNECTING:
                 break;
             case REGISTERED:
-                stopReconnectJob(); // maybe give the user an option, not to pair it? This way we will keep asking
                 updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE, "Connected");
                 channelHandlers.forEach((k, v) -> {
                     v.refreshSubscription(k, this);
@@ -212,6 +205,7 @@ public class WebOSHandler extends BaseThingHandler implements WebOSTVSocket.Conf
                 });
                 break;
             case REGISTERING:
+                stopReconnectJob(); // maybe give the user an option, not to pair it? This way we will keep asking
                 updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE,
                         "Registering - You may need to confirm pairing on TV.");
                 break;

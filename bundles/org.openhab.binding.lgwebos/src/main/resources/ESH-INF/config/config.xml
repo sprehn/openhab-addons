@@ -8,7 +8,7 @@
 	<config-description uri="thing-type:lgwebos:WebOSTV">
 		<parameter name="host" type="text" required="true">
 			<label>Host</label>
-			<description>Host or IP address of TV.</description>
+			<description>Hostname or IP address of TV.</description>
 			<context>network-address</context>
 		</parameter>
 		<parameter name="key" type="text" required="false">

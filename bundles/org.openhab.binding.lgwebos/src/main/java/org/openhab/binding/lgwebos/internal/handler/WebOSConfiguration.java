@@ -24,4 +24,10 @@ public class WebOSConfiguration {
     String key; // name has to match LGWebOSBindingConstants.CONFIG_KEY
     // String uuid;
     // String mac; // mac address of TV, if set we can attempt wake on lan
+
+    @Override
+    public String toString() {
+        return "WebOSConfiguration [host=" + host + ", port=" + port + ", key=" + key + "]";
+    }
+
 }

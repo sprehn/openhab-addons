@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.lgwebos.internal.discovery;
 
+import static org.openhab.binding.lgwebos.internal.WebOSBindingConstants.*;
+
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -21,7 +23,6 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.jupnp.UpnpService;
 import org.jupnp.model.message.header.ServiceTypeHeader;
-import org.openhab.binding.lgwebos.internal.WebOSBindingConstants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -51,7 +52,7 @@ public class WebOSUpnpDiscoverySearch extends AbstractDiscoveryService {
     private @Nullable ScheduledFuture<?> searchJob;
 
     public WebOSUpnpDiscoverySearch() {
-        super(WebOSBindingConstants.SUPPORTED_THING_TYPES_UIDS, DISCOVERY_TIMEOUT_SECONDS, true);
+        super(SUPPORTED_THING_TYPES_UIDS, DISCOVERY_TIMEOUT_SECONDS, true);
     }
 
     @Reference
@@ -64,8 +65,8 @@ public class WebOSUpnpDiscoverySearch extends AbstractDiscoveryService {
     }
 
     private void search() {
-        logger.trace("Sending Upnp Search Request for {}", WebOSBindingConstants.UPNP_SERVICE_TYPE);
-        upnpService.getControlPoint().search(new ServiceTypeHeader(WebOSBindingConstants.UPNP_SERVICE_TYPE));
+        logger.trace("Sending Upnp Search Request for {}", UPNP_SERVICE_TYPE);
+        upnpService.getControlPoint().search(new ServiceTypeHeader(UPNP_SERVICE_TYPE));
     }
 
     @Override

@@ -12,9 +12,8 @@
  */
 package org.openhab.binding.lgwebos.internal.discovery;
 
-import static org.openhab.binding.lgwebos.internal.WebOSBindingConstants.THING_TYPE_WEBOSTV;
+import static org.openhab.binding.lgwebos.internal.WebOSBindingConstants.*;
 
-import java.time.Instant;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -26,7 +25,6 @@ import org.eclipse.smarthome.config.discovery.upnp.UpnpDiscoveryParticipant;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.jupnp.model.meta.RemoteDevice;
-import org.openhab.binding.lgwebos.internal.WebOSBindingConstants;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +41,10 @@ import org.slf4j.LoggerFactory;
 public class WebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
 
     private final Logger logger = LoggerFactory.getLogger(WebOSUpnpDiscoveryParticipant.class);
-    private static final String DEVICE_ID = "deviceId";
 
     @Override
     public Set<@NonNull ThingTypeUID> getSupportedThingTypeUIDs() {
-        return WebOSBindingConstants.SUPPORTED_THING_TYPES_UIDS;
+        return SUPPORTED_THING_TYPES_UIDS;
     }
 
     @Override
@@ -59,22 +56,18 @@ public class WebOSUpnpDiscoveryParticipant implements UpnpDiscoveryParticipant {
         }
 
         return DiscoveryResultBuilder.create(thingUID).withLabel(device.getDetails().getFriendlyName())
-                .withProperty(DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
-                .withProperty(WebOSBindingConstants.CONFIG_HOST, device.getIdentity().getDescriptorURL().getHost())
+                .withProperty(PROPERTY_DEVICE_ID, device.getIdentity().getUdn().getIdentifierString())
+                .withProperty(CONFIG_HOST, device.getIdentity().getDescriptorURL().getHost())
                 .withLabel(device.getDetails().getFriendlyName())
-                .withProperty("modelName", device.getDetails().getModelDetails().getModelName())
-                .withProperty("modelNumber", device.getDetails().getModelDetails().getModelNumber())
-                .withProperty("descriptorUrl", device.getIdentity().getDescriptorURL())
-                .withProperty("serialNumber", device.getDetails().getSerialNumber())
-                .withProperty("manufacturer", device.getDetails().getManufacturerDetails().getManufacturer())
-                .withProperty("lastDetection", Instant.now().toString()).withRepresentationProperty(DEVICE_ID)
-                .withThingType(THING_TYPE_WEBOSTV).build();
+                .withProperty(PROPERTY_MODEL_NAME, device.getDetails().getModelDetails().getModelName())
+                .withProperty(PROPERTY_MANUFACTURER, device.getDetails().getManufacturerDetails().getManufacturer())
+                .withRepresentationProperty(PROPERTY_DEVICE_ID).withThingType(THING_TYPE_WEBOSTV).build();
     }
 
     @Override
     public @Nullable ThingUID getThingUID(RemoteDevice device) {
         logger.trace("Discovered remote device {}", device);
-        if (device.findService(WebOSBindingConstants.UPNP_SERVICE_TYPE) != null) {
+        if (device.findService(UPNP_SERVICE_TYPE) != null) {
             logger.debug("Found LG WebOS TV: {}", device);
             return new ThingUID(THING_TYPE_WEBOSTV, device.getIdentity().getUdn().getIdentifierString());
         }

@@ -34,14 +34,18 @@
  */
 package org.openhab.binding.lgwebos.internal.handler;
 
+import static org.openhab.binding.lgwebos.internal.WebOSBindingConstants.*;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
@@ -100,7 +104,7 @@ public class WebOSTVSocket {
 
     private State state = State.DISCONNECTED;
 
-    private final Config configStore;
+    private final ConfigProvider config;
     private final WebSocketClient client;
     private @Nullable Session session;
     private final URI destUri;
@@ -116,15 +120,15 @@ public class WebOSTVSocket {
 
     private Queue<ServiceCommand<?>> offlineBuffer = new LinkedList<>();
 
-    public WebOSTVSocket(WebSocketClient client, Config configStore, String ipAddress, int port) {
-        this.configStore = configStore;
+    public WebOSTVSocket(WebSocketClient client, ConfigProvider config, String host, int port) {
+        this.config = config;
         this.client = client;
         this.keyboardInput = new WebOSTVKeyboardInput(this);
 
         try {
-            this.destUri = new URI("wss://" + ipAddress + ":" + port);
+            this.destUri = new URI("wss://" + host + ":" + port);
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("IP Address or Host provided is invalid: " + ipAddress);
+            throw new IllegalArgumentException("IP Address or Host provided is invalid: " + host);
         }
     }
 
@@ -244,7 +248,7 @@ public class WebOSTVSocket {
         manifest.add("permissions", GSON.toJsonTree(permissions));
 
         JsonObject payload = new JsonObject();
-        String key = configStore.getKey();
+        String key = config.getKey();
         if (key != null && !key.isEmpty()) {
             payload.addProperty("client-key", key);
         }
@@ -395,7 +399,14 @@ public class WebOSTVSocket {
                     logger.warn("No payload in error message: {}", message);
                     break;
                 }
-                // configStore.storeDeviceUUID(response.getPayload().getAsJsonObject().get("deviceUUID").getAsString());
+                JsonObject deviceDescription = response.getPayload().getAsJsonObject();
+                Map<String, String> map = new HashMap<>();
+                map.put(PROPERTY_DEVICE_OS, deviceDescription.get("deviceOS").getAsString());
+                map.put(PROPERTY_DEVICE_OS_VERSION, deviceDescription.get("deviceOSVersion").getAsString());
+                map.put(PROPERTY_DEVICE_OS_RELEASE_VERSION,
+                        deviceDescription.get("deviceOSReleaseVersion").getAsString());
+                map.put(PROPERTY_LAST_CONNECTED, Instant.now().toString());
+                config.storeProperties(map);
                 sendRegister();
                 break;
             case "registered":
@@ -404,7 +415,7 @@ public class WebOSTVSocket {
                     break;
                 }
                 this.requests.remove(response.getId());
-                configStore.storeKey(response.getPayload().getAsJsonObject().get("client-key").getAsString());
+                config.storeKey(response.getPayload().getAsJsonObject().get("client-key").getAsString());
                 setState(State.REGISTERED);
 
                 while (this.offlineBuffer.size() > 0) {
@@ -779,8 +790,10 @@ public class WebOSTVSocket {
 
     }
 
-    public interface Config {
+    public interface ConfigProvider {
         void storeKey(@Nullable String key);
+
+        void storeProperties(Map<String, String> properties);
 
         @Nullable
         String getKey();

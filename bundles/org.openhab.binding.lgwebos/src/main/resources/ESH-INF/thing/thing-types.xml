@@ -21,16 +21,13 @@
 		</channels>
         
         <properties>
-          <property name="ipAddress" /> 
-          <property name="friendlyName" /> 
+          <property name="deviceId" />
+          <property name="lastConnected" /> 
           <property name="modelName" /> 
-          <property name="modelNumber" /> 
-          <property name="descriptorUrl" /> 
-          <property name="serialNumber" /> 
-          <property name="manufacturer" />       
-          <property name="lastConnected" />  
-          <property name="lastDetection" />  
-          <property name="key" />
+          <property name="manufacturer" /> 
+          <property name="deviceOS" /> 
+          <property name="deviceOSVersion" /> 
+          <property name="deviceOSReleaseVersion" /> 
         </properties>
 		<representation-property>deviceId</representation-property>
 		

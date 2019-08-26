@@ -37,10 +37,31 @@ public class WebOSBindingConstants {
 
     public static final ServiceType UPNP_SERVICE_TYPE = new ServiceType("lge-com", "webos-second-screen", 1);
 
+    /*
+     * Config names must match property names in
+     * - WebOSConfiguration
+     * - parameter names in ESH-INF/config/config.xml
+     * - property names in ESH-INF/thing/thing-types.xml
+     */
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_KEY = "key";
 
-    // List of all Channel ids. Values have to match ids in thing-types.xml
+    /*
+     * Property names must match property names in
+     * - property names in ESH-INF/thing/thing-types.xml
+     */
+    public static final String PROPERTY_DEVICE_ID = "deviceId";
+    public static final String PROPERTY_DEVICE_OS = "deviceOS";
+    public static final String PROPERTY_DEVICE_OS_VERSION = "deviceOSVersion";
+    public static final String PROPERTY_DEVICE_OS_RELEASE_VERSION = "deviceOSReleaseVersion";
+    public static final String PROPERTY_LAST_CONNECTED = "lastConnected";
+    public static final String PROPERTY_MODEL_NAME = "modelName";
+    public static final String PROPERTY_MANUFACTURER = "manufacturer";
+
+    /*
+     * List of all Channel ids.
+     * Values have to match ids in thing-types.xml
+     */
     public static final String CHANNEL_VOLUME = "volume";
     public static final String CHANNEL_POWER = "power";
     public static final String CHANNEL_MUTE = "mute";
