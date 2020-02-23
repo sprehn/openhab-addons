@@ -59,7 +59,8 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener {
+public class LGWebOSHandler extends BaseThingHandler
+        implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener, PowerControlPower.ConfigProvider {
 
     /*
      * constants for device polling
@@ -92,7 +93,7 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
 
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
-        handlers.put(CHANNEL_POWER, new PowerControlPower());
+        handlers.put(CHANNEL_POWER, new PowerControlPower(this));
         handlers.put(CHANNEL_MUTE, new VolumeControlMute());
         handlers.put(CHANNEL_CHANNEL, new TVControlChannel());
         handlers.put(CHANNEL_CHANNEL_NAME, new TVControlChannelName());
@@ -220,6 +221,11 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
         }
 
         handler.onReceiveCommand(channelUID.getId(), this, command);
+    }
+
+    @Override
+    public String getMacAddress() {
+        return getLGWebOSConfig().getMacAddress();
     }
 
     @Override
