@@ -25,10 +25,17 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.config.core.Configuration;
+import org.eclipse.smarthome.config.discovery.DiscoveryListener;
+import org.eclipse.smarthome.config.discovery.DiscoveryResult;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry;
+import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
+import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerService;
 import org.eclipse.smarthome.core.types.Command;
@@ -59,7 +66,8 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener {
+public class LGWebOSHandler extends BaseThingHandler
+        implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener, DiscoveryListener {
 
     /*
      * constants for device polling
@@ -80,15 +88,18 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
     private final LauncherApplication appLauncher = new LauncherApplication();
     private @Nullable LGWebOSTVSocket socket;
     private final WebSocketClient webSocketClient;
+    private final DiscoveryServiceRegistry discoveryServiceRegistry;
 
     private @Nullable ScheduledFuture<?> reconnectJob;
     private @Nullable ScheduledFuture<?> keepAliveJob;
 
     private @Nullable LGWebOSConfiguration config;
 
-    public LGWebOSHandler(Thing thing, WebSocketClient webSocketClient) {
+    public LGWebOSHandler(Thing thing, WebSocketClient webSocketClient,
+            DiscoveryServiceRegistry discoveryServiceRegistry) {
         super(thing);
         this.webSocketClient = webSocketClient;
+        this.discoveryServiceRegistry = discoveryServiceRegistry;
 
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
@@ -126,7 +137,7 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
         LGWebOSTVSocket s = new LGWebOSTVSocket(webSocketClient, this, host, c.getPort());
         s.setListener(this);
         socket = s;
-
+        discoveryServiceRegistry.addDiscoveryListener(this);
         startReconnectJob();
     }
 
@@ -134,6 +145,8 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
     public void dispose() {
         stopKeepAliveJob();
         stopReconnectJob();
+
+        discoveryServiceRegistry.removeDiscoveryListener(this);
 
         LGWebOSTVSocket s = socket;
         if (s != null) {
@@ -328,4 +341,39 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
     public Collection<Class<? extends ThingHandlerService>> getServices() {
         return Collections.singleton(LGWebOSActions.class);
     }
+
+    /*
+     * Discovery Listener - Implemented to use SSDP / UPNP good-bye events to speed up detection of device going offline
+     */
+
+    @Override
+    public void thingDiscovered(DiscoveryService source, DiscoveryResult result) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /*
+     * Detect TV shutdown much before TV closes the websocket by listening to the upnp registry.
+     *
+     * Upnp devices send a good-bye broadcast on normal shutdown. This is true also for webos devices.
+     * This seems to be the only way to detect instantly that the TV was turned off by remote control and much before
+     * the
+     * device actually closes the websocket connection.
+     * However, not all users do use Upnp, so this use case is an optional optimization.
+     */
+    @Override
+    public void thingRemoved(DiscoveryService source, ThingUID thingUID) {
+        logger.debug("Received thing removed event: {}", thingUID);
+        if (this.getThing().getUID().equals(thingUID)) {
+            this.postUpdate(CHANNEL_POWER, OnOffType.OFF);
+        }
+    }
+
+    @Override
+    public @Nullable Collection<ThingUID> removeOlderResults(DiscoveryService source, long timestamp,
+            @Nullable Collection<ThingTypeUID> thingTypeUIDs, @Nullable ThingUID bridgeUID) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }
