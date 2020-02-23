@@ -17,6 +17,7 @@ import static org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants.*;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
@@ -44,13 +45,18 @@ public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
 
     private final WebSocketClient webSocketClient;
 
+    private final DiscoveryServiceRegistry discoveryServiceRegistry;
+
     @Activate
-    public LGWebOSHandlerFactory(final @Reference WebSocketFactory webSocketFactory) {
+    public LGWebOSHandlerFactory(final @Reference WebSocketFactory webSocketFactory,
+            final @Reference DiscoveryServiceRegistry discoveryServiceRegistry) {
         /*
          * Cannot use openHAB's shared web socket client (webSocketFactory.getCommonWebSocketClient()) as we have to
          * change client settings.
          */
         this.webSocketClient = webSocketFactory.createWebSocketClient("lgwebos");
+
+        this.discoveryServiceRegistry = discoveryServiceRegistry;
     }
 
     @Override
@@ -62,7 +68,7 @@ public class LGWebOSHandlerFactory extends BaseThingHandlerFactory {
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         if (thingTypeUID.equals(THING_TYPE_WEBOSTV)) {
-            return new LGWebOSHandler(thing, webSocketClient);
+            return new LGWebOSHandler(thing, webSocketClient, discoveryServiceRegistry);
         }
         return null;
     }

@@ -14,6 +14,8 @@ package org.openhab.binding.lgwebos.internal.handler;
 
 import static org.openhab.binding.lgwebos.internal.LGWebOSBindingConstants.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,10 +27,16 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.config.core.Configuration;
+import org.eclipse.smarthome.config.discovery.DiscoveryListener;
+import org.eclipse.smarthome.config.discovery.DiscoveryResult;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
+import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerService;
 import org.eclipse.smarthome.core.types.Command;
@@ -46,6 +54,7 @@ import org.openhab.binding.lgwebos.internal.TVControlChannelName;
 import org.openhab.binding.lgwebos.internal.ToastControlToast;
 import org.openhab.binding.lgwebos.internal.VolumeControlMute;
 import org.openhab.binding.lgwebos.internal.VolumeControlVolume;
+import org.openhab.binding.lgwebos.internal.WakeOnLanUtility;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSTVSocket.WebOSTVSocketListener;
 import org.openhab.binding.lgwebos.internal.handler.core.AppInfo;
 import org.openhab.binding.lgwebos.internal.handler.core.ResponseListener;
@@ -59,8 +68,8 @@ import org.slf4j.LoggerFactory;
  * @author Sebastian Prehn - initial contribution
  */
 @NonNullByDefault
-public class LGWebOSHandler extends BaseThingHandler
-        implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener, PowerControlPower.ConfigProvider {
+public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.ConfigProvider, WebOSTVSocketListener,
+        PowerControlPower.ConfigProvider, DiscoveryListener {
 
     /*
      * constants for device polling
@@ -87,13 +96,16 @@ public class LGWebOSHandler extends BaseThingHandler
 
     private @Nullable LGWebOSConfiguration config;
 
-    public LGWebOSHandler(Thing thing, WebSocketClient webSocketClient) {
+    private final DiscoveryServiceRegistry discoveryServiceRegistry;
+
+    public LGWebOSHandler(Thing thing, WebSocketClient webSocketClient,
+            DiscoveryServiceRegistry discoveryServiceRegistry) {
         super(thing);
         this.webSocketClient = webSocketClient;
-
+        this.discoveryServiceRegistry = discoveryServiceRegistry;
         Map<String, ChannelHandler> handlers = new HashMap<>();
         handlers.put(CHANNEL_VOLUME, new VolumeControlVolume());
-        handlers.put(CHANNEL_POWER, new PowerControlPower(this));
+        handlers.put(CHANNEL_POWER, new PowerControlPower(this, scheduler));
         handlers.put(CHANNEL_MUTE, new VolumeControlMute());
         handlers.put(CHANNEL_CHANNEL, new TVControlChannel());
         handlers.put(CHANNEL_CHANNEL_NAME, new TVControlChannelName());
@@ -128,6 +140,9 @@ public class LGWebOSHandler extends BaseThingHandler
         s.setListener(this);
         socket = s;
 
+        this.discoveryServiceRegistry.addDiscoveryListener(this);
+
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
         startReconnectJob();
     }
 
@@ -135,6 +150,7 @@ public class LGWebOSHandler extends BaseThingHandler
     public void dispose() {
         stopKeepAliveJob();
         stopReconnectJob();
+        this.discoveryServiceRegistry.removeDiscoveryListener(this);
 
         LGWebOSTVSocket s = socket;
         if (s != null) {
@@ -142,6 +158,7 @@ public class LGWebOSHandler extends BaseThingHandler
             scheduler.execute(() -> s.disconnect()); // dispose should be none-blocking
         }
         socket = null;
+        config = null; // ensure config gets actually refreshed during re-initialization
         super.dispose();
     }
 
@@ -333,5 +350,40 @@ public class LGWebOSHandler extends BaseThingHandler
     @Override
     public Collection<Class<? extends ThingHandlerService>> getServices() {
         return Collections.singleton(LGWebOSActions.class);
+    }
+
+    @Override
+    public void thingDiscovered(DiscoveryService source, DiscoveryResult result) {
+        LGWebOSConfiguration c = getLGWebOSConfig();
+        String host = c.getHost();
+        if (!host.isEmpty()) {
+            try {
+                // validate host, so that no command can be injected
+                String macAddress = WakeOnLanUtility.getMACAddress(InetAddress.getByName(host).getHostAddress());
+                logger.debug("Determined MAC address: {} for host: {}", macAddress, host);
+                if (macAddress != null) {
+                    c.macAddress = macAddress;
+                    // persist the configuration change
+                    Configuration configuration = editConfiguration();
+                    configuration.put(LGWebOSBindingConstants.CONFIG_MAC_ADDRESS, macAddress);
+                    updateConfiguration(configuration);
+                }
+            } catch (UnknownHostException e) {
+                logger.debug("Unable to determine MAC address: {}", e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void thingRemoved(DiscoveryService source, ThingUID thingUID) {
+        // nothing to do
+
+    }
+
+    @Override
+    public @Nullable Collection<ThingUID> removeOlderResults(DiscoveryService source, long timestamp,
+            @Nullable Collection<ThingTypeUID> thingTypeUIDs, @Nullable ThingUID bridgeUID) {
+        // nothing to do
+        return null;
     }
 }
