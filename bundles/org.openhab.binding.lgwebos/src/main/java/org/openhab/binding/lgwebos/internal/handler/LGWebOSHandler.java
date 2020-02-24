@@ -31,6 +31,7 @@ import org.eclipse.smarthome.config.discovery.DiscoveryListener;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry;
+import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -376,8 +377,10 @@ public class LGWebOSHandler extends BaseThingHandler implements LGWebOSTVSocket.
 
     @Override
     public void thingRemoved(DiscoveryService source, ThingUID thingUID) {
-        // nothing to do
-
+        logger.debug("thingRemoved: {}", thingUID);
+        if (this.getThing().getUID().equals(thingUID)) {
+            postUpdate(CHANNEL_POWER, OnOffType.OFF);
+        }
     }
 
     @Override

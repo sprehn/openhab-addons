@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * Class with utility functions to support Wake On Lan (WOL)
  *
  * @author Arjan Mels - Initial contribution
- * @author Sebastian Prehn - Modification to getMACAddress to use arp command.
+ * @author Sebastian Prehn - Modification to getMACAddress
  *
  */
 @NonNullByDefault
@@ -50,7 +50,7 @@ public class WakeOnLanUtility {
      */
     public static @Nullable String getMACAddress(String hostName) {
         try {
-            Process proc = Runtime.getRuntime().exec("arp " + hostName);
+            Process proc = Runtime.getRuntime().exec("arping -r -c 1 -C 1 " + hostName); // arp on linux
             int returnCode = proc.waitFor();
             String s;
             StringBuilder builder = new StringBuilder();
@@ -61,7 +61,7 @@ public class WakeOnLanUtility {
             }
 
             if (returnCode != 0) {
-                logger.debug("getMacAddress error stream: ", builder.toString());
+                logger.debug("getMacAddress error stream: {}", builder.toString());
             } else {
 
                 Pattern macPattern = Pattern.compile("(([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})");
