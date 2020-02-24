@@ -93,11 +93,13 @@ public class LGWebOSUpnpShutdownDetector implements RegistryListener {
         if (device == null) {
             return;
         }
+        logger.debug("remoteDeviceRemoved: {} ", device.getDetails());
         String ip = device.getIdentity().getDescriptorURL().getHost();
         thingRegistry.getAll().stream().filter(thing -> THING_TYPE_WEBOSTV.equals(thing.getThingTypeUID()))
                 .filter(thing -> ip.equals(thing.getConfiguration().get(CONFIG_HOST))).forEach(thing -> {
                     ThingHandler handler = thing.getHandler();
                     if (handler != null) {
+                        logger.debug("Detected Device shutdown");
                         ((LGWebOSHandler) handler).postUpdate(CHANNEL_POWER, OnOffType.OFF);
                     }
                 });

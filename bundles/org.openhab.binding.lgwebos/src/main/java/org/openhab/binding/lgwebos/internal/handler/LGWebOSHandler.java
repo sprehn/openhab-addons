@@ -137,7 +137,10 @@ public class LGWebOSHandler extends BaseThingHandler
         LGWebOSTVSocket s = new LGWebOSTVSocket(webSocketClient, this, host, c.getPort());
         s.setListener(this);
         socket = s;
+
         discoveryServiceRegistry.addDiscoveryListener(this);
+
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "TV is off");
         startReconnectJob();
     }
 
@@ -154,6 +157,7 @@ public class LGWebOSHandler extends BaseThingHandler
             scheduler.execute(() -> s.disconnect()); // dispose should be none-blocking
         }
         socket = null;
+        config = null; // ensure config gets actually refreshed during re-initialization
         super.dispose();
     }
 
@@ -348,8 +352,7 @@ public class LGWebOSHandler extends BaseThingHandler
 
     @Override
     public void thingDiscovered(DiscoveryService source, DiscoveryResult result) {
-        // TODO Auto-generated method stub
-
+        logger.debug("Received thingDiscovered event: {}", result);
     }
 
     /*
@@ -363,7 +366,7 @@ public class LGWebOSHandler extends BaseThingHandler
      */
     @Override
     public void thingRemoved(DiscoveryService source, ThingUID thingUID) {
-        logger.debug("Received thing removed event: {}", thingUID);
+        logger.debug("Received thingRemoved event: {}", thingUID);
         if (this.getThing().getUID().equals(thingUID)) {
             this.postUpdate(CHANNEL_POWER, OnOffType.OFF);
         }
