@@ -77,7 +77,7 @@ public class WakeOnLanUtility {
                 }
 
                 if (macAddress != null) {
-                    logger.info("MAC address of host {} is {}", hostName, macAddress);
+                    logger.debug("MAC address of host {} is {}", hostName, macAddress);
                     return macAddress;
                 }
             }
