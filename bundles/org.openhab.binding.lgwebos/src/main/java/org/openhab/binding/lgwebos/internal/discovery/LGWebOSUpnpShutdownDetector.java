@@ -22,6 +22,7 @@ import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.jupnp.UpnpService;
 import org.jupnp.model.meta.LocalDevice;
 import org.jupnp.model.meta.RemoteDevice;
+import org.jupnp.model.meta.RemoteService;
 import org.jupnp.registry.Registry;
 import org.jupnp.registry.RegistryListener;
 import org.openhab.binding.lgwebos.internal.handler.LGWebOSHandler;
@@ -40,6 +41,17 @@ import org.slf4j.LoggerFactory;
  * device actually closes the websocket connection.
  *
  * However, not all users do use Upnp, so this use case is an optional optimization.
+ *
+ * The only Upnp device in webos that sends an event on shut down is of type
+ * urn:schemas-upnp-org:device:MediaRenderer:1, with services types:
+ * urn:schemas-upnp-org:service:AVTransport:1
+ * urn:schemas-upnp-org:service:ConnectionManager:1
+ * urn:schemas-upnp-org:service:RenderingControl:1
+ *
+ * 20 to 30 seconds later the websocket connection will close.
+ * Arround this point in time device type: urn:schemas-upnp-org:device:Basic:1 de-registers with service type:
+ * urn:lge-com:service:webos-second-screen:1 - the same, which is used for thing discovery.
+ * Thus, thingRemoved of DiscoveryListener implementation in LGWebOSHandler will only be called at this point.
  *
  *
  * @author Sebastian Prehn - Initial contribution
@@ -93,13 +105,18 @@ public class LGWebOSUpnpShutdownDetector implements RegistryListener {
         if (device == null) {
             return;
         }
-        logger.debug("remoteDeviceRemoved: {} ", device.getDetails());
         String ip = device.getIdentity().getDescriptorURL().getHost();
         thingRegistry.getAll().stream().filter(thing -> THING_TYPE_WEBOSTV.equals(thing.getThingTypeUID()))
                 .filter(thing -> ip.equals(thing.getConfiguration().get(CONFIG_HOST))).forEach(thing -> {
                     ThingHandler handler = thing.getHandler();
                     if (handler != null) {
-                        logger.debug("Detected Device shutdown");
+                        logger.debug("Detected device shutdown: {}", device);
+                        logger.debug("device type: {}", device.getType());
+                        for (RemoteService s : device.getServices()) {
+                            logger.debug("service id: {}", s.getServiceId());
+                            logger.debug("service type: {}", s.getServiceType());
+                        }
+
                         ((LGWebOSHandler) handler).postUpdate(CHANNEL_POWER, OnOffType.OFF);
                     }
                 });
