@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * urn:schemas-upnp-org:service:RenderingControl:1
  *
  * 20 to 30 seconds later the websocket connection will close.
- * Arround this point in time device type: urn:schemas-upnp-org:device:Basic:1 de-registers with service type:
+ * Around this point in time device type: urn:schemas-upnp-org:device:Basic:1 de-registers with service type:
  * urn:lge-com:service:webos-second-screen:1 - the same, which is used for thing discovery.
  * Thus, thingRemoved of DiscoveryListener implementation in LGWebOSHandler will only be called at this point.
  *
